@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from desert.desert import Desert
+from modules.desert.desert import Desert
