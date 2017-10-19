@@ -4,114 +4,88 @@
 # from cairocffi import OPERATOR_SOURCE
 
 # import cairo as cairo
-# from cairo import OPERATOR_SOURCE
+# from cairo import OP+ERATOR_SOURCE
 
-from gi import require_version
-require_version('Gtk', '3.0')
+# from gi import require_version
+# require_version('Gtk', '3.0')
 
-from gi.repository import Gtk
-from gi.repository import GObject
+# from gi.repository import Gtk
+# from gi.repository import GObject
 
 
-from numpy.random import random
-from numpy import pi
-from numpy import sqrt
-from numpy import linspace
-from numpy import arctan2
-from numpy import cos
-from numpy import sin
-from numpy import column_stack
-from numpy import square
-from numpy import array
-# from numpy import reshape
+# from numpy.random import random
+# from numpy import pi
+# from numpy import sqrt
+# from numpy import linspace
+# from numpy import arctan2
+# from numpy import cos
+# from numpy import sin
+# from numpy import column_stack
+# from numpy import square
+# from numpy import array
+from numpy import reshape
 # from numpy import floor
 
+import torch
+from torch.cuda import IntTensor as cIntTensor
+from torch.cuda import LongTensor as cLongTensor
+from torch.cuda import FloatTensor as cFloatTensor
+from torch.sparse import FloatTensor as sFloatTensor
 
-TWOPI = pi*2
+# import torch.nn as nn
+# from torch.autograd import Variable
+# import torch.optim as optim
 
+from PIL import Image
+import matplotlib.pyplot as plt
 
-# class Render(object):
+import torchvision.transforms as transforms
+# import torchvision.models as models
 
-  # def __init__(self,n, back, front):
+# import copy
 
-  #   self.n = n
-  #   self.front = front
-  #   self.back = back
-  #   self.pix = 1./float(n)
+unloader = transforms.ToPILImage()  # reconvert into PIL image
+# dtype = torch.cuda.FloatTensor #if torch.cuda.is_available()
 
-  #   self.colors = []
-  #   self.ncolors = 0
-  #   self.num_img = 0
+# TWOPI = pi*2
 
-  #   self.__init_cairo()
-
-  # def __init_cairo(self):
-
-  #   sur = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.n, self.n)
-  #   ctx = cairo.Context(sur)
-  #   ctx.scale(self.n, self.n)
-
-  #   self.sur = sur
-  #   self.ctx = ctx
-
-  #   self.clear_canvas()
-
-  # def clear_canvas(self):
-
-  #   ctx = self.ctx
-
-  #   ctx.set_source_rgba(*self.back)
-  #   ctx.rectangle(0, 0, 1, 1)
-  #   ctx.fill()
-  #   ctx.set_source_rgba(*self.front)
-
-  # def write_to_png(self, fn):
-
-  #   self.sur.write_to_png(fn)
-  #   self.num_img += 1
 
 class Desert():
 
-  def __init__(self, size):
+  def __init__(self, imsize, fg, bg):
 
-    # Render.__init__(self, n, front, back)
+    self.imsize = imsize
+    self.fg = cFloatTensor(reshape(fg, (3, 1)))
+    self.bg = cFloatTensor(reshape(bg, (3, 1)))
+    self.vals = torch.cuda.FloatTensor(3, imsize, imsize).fill_(1)
+    self.vals[1, :, :].fill_(1)
 
-    self.size = size
+  def imshow(self):
+    imsize = self.imsize
+    image = self.vals.clone().cpu()
+    image = image.view(3, imsize, imsize)
+    image = unloader(image)
+    plt.imshow(image)
 
-    window = Gtk.Window()
-    self.window = window
-    window.resize(self.size, self.size)
+  def box(self, s, xy, dens):
 
-    window.connect("destroy", self.__destroy)
-    darea = Gtk.DrawingArea()
-    # darea.connect("expose-event", self.expose)
-    self.darea = darea
 
-    window.add(darea)
-    window.show_all()
+    try:
+      sx, sy = s
+    except TypeError:
+      sx = s
+      sy = s
 
-    #self.cr = self.darea.window.cairo_create()
-    self.steps = 0
-    GObject.idle_add(self.step_wrap)
+    imsize = self.imsize
+    n = int(sx*sy*dens*(imsize**2))
 
-  def __destroy(self, *args):
-    Gtk.main_quit(*args)
+    coords = cFloatTensor(reshape(xy, (2, 1))) +\
+             s*(1.0-2.0*cFloatTensor(2, n).uniform_())
+    inds = coords.mul_(imsize).type(cLongTensor)
 
-  def start(self):
-    Gtk.main()
+    self.vals[:,inds[0, :], inds[1, :]] += self.fg
 
-  # def expose(self, *args):
 
-  #   #cr = self.cr
-  #   # cr = self.darea.window.cairo_create()
-  #   cr = self.darea.get_property('window').cairo_create()
-  #   cr.set_source_surface(self.sur, 0, 0)
-  #   cr.paint()
 
-  def step_wrap(self):
-    # res = self.step(self)
-    self.steps += 1
-    # self.expose()
-
-    return True
+    print(inds)
 
