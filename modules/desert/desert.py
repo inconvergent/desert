@@ -86,3 +86,9 @@ class Desert():
     xy = (1-2*random((n, 2))) * s + mid
     self._dot(xy)
 
+  def circle(self, s, mid, dens):
+
+    n = int(4*sx*sy*dens*(self.imsize2))
+    xy = (1-2*random((n, 2))) * s + mid
+    self._dot(xy)
+
