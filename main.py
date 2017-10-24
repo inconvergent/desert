@@ -9,11 +9,11 @@ from modules import Desert
 
 def main():
 
-  imsize = 1000
-  d = Desert(imsize, fg=(1, 0.1, 0.5),
-                     bg=(0.0, 0.0, 0.0))
+  imsize = 30
+  d = Desert(imsize, fg=(1, 0.1, 0.5, 0.1),
+                     bg=(1.0, 0.0, 0.0, 1.0))
 
-  d.box(0.1, (0.5, 0.5), 0.5)
+  d.box(0.5, (0.5, 0.5), 3.0)
 
   fig = plt.figure()
   fig.patch.set_facecolor('gray')

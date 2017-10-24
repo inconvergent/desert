@@ -1,74 +1,92 @@
 # -*- coding: utf-8 -*-
 
-# import cairocffi as cairo
-# from cairocffi import OPERATOR_SOURCE
-
-# import cairo as cairo
-# from cairo import OP+ERATOR_SOURCE
-
-# from gi import require_version
-# require_version('Gtk', '3.0')
-
-# from gi.repository import Gtk
-# from gi.repository import GObject
 
 
-# from numpy.random import random
-# from numpy import pi
-# from numpy import sqrt
-# from numpy import linspace
-# from numpy import arctan2
-# from numpy import cos
-# from numpy import sin
-# from numpy import column_stack
-# from numpy import square
-# from numpy import array
+from numpy import pi
+from numpy import zeros
+from numpy import column_stack
+from numpy import float32 as npfloat
+from numpy import int32 as npint
+from numpy import uint8 as npuint8
+
+from numpy.random import random
+
 from numpy import reshape
-# from numpy import floor
 
-import torch
-from torch.cuda import IntTensor as cIntTensor
-from torch.cuda import LongTensor as cLongTensor
-from torch.cuda import FloatTensor as cFloatTensor
-from torch.sparse import FloatTensor as sFloatTensor
-
-# import torch.nn as nn
-# from torch.autograd import Variable
-# import torch.optim as optim
-
-from PIL import Image
 import matplotlib.pyplot as plt
+from PIL import Image
 
-import torchvision.transforms as transforms
-# import torchvision.models as models
+import pycuda.autoinit
+import pycuda.driver as drv
 
-# import copy
+from pycuda.driver import In as in_
+from pycuda.driver import Out as out_
+from pycuda.driver import InOut as inout_
 
-unloader = transforms.ToPILImage()  # reconvert into PIL image
-# dtype = torch.cuda.FloatTensor #if torch.cuda.is_available()
+from modules.helpers import load_kernel
 
-# TWOPI = pi*2
+
+TWOPI = pi*2
+
+
+def pre_alpha(c):
+  r, g, b, a = c
+  return reshape([a*r , a*g, a*b, a], (1, 4))
+
+
+def unpack(v, imsize):
+  alpha = v[:, 3:4]
+  return reshape(npuint8(column_stack((v[:, :3]/alpha, alpha))*255),
+                 (imsize, imsize, 4))
+
 
 
 class Desert():
 
   def __init__(self, imsize, fg, bg):
-
     self.imsize = imsize
-    self.fg = cFloatTensor(reshape(fg, (3, 1)))
-    self.bg = cFloatTensor(reshape(bg, (3, 1)))
-    self.vals = torch.cuda.FloatTensor(3, imsize, imsize).fill_(1)
-    self.vals[1, :, :].fill_(1)
+    self.imsize2 = imsize*imsize
+    self.vals = zeros((self.imsize2, 4), npfloat)
+    self.img = self.vals.view().reshape(imsize, imsize, 4)
+
+    self.fg = pre_alpha(fg)
+    self.bg = pre_alpha(bg)
+
+    self.vals[:, :] = self.bg
+
+
+    self.threads = 512
+
+    self.__cuda_init()
+
+  def __cuda_init(self):
+    self.cuda_dot = load_kernel(
+        'modules/cuda/dot.cu',
+        'dot',
+        subs={'_THREADS_': self.threads}
+        )
+
+  def _dot(self, inds):
+    num, _ = inds.shape
+    blocks = num//self.threads + 1
+
+    # self.cuda_dot(
+    #     npint(num),
+    #     npint(1),
+    #     npint(1),
+    #     in_(self.vals),
+    #     inout_(1),
+    #     inout_(1),
+    #     block=(self.threads, 1, 1),
+    #     grid=(blocks, 1)
+    #     )
 
   def imshow(self):
     imsize = self.imsize
-    image = self.vals.clone().cpu()
-    image = image.view(3, imsize, imsize)
-    image = unloader(image)
-    plt.imshow(image)
+    im = Image.fromarray(unpack(self.vals, imsize))
+    plt.imshow(im)
 
   def box(self, s, xy, dens):
-
 
     try:
       sx, sy = s
@@ -79,13 +97,6 @@ class Desert():
     imsize = self.imsize
     n = int(sx*sy*dens*(imsize**2))
 
-    coords = cFloatTensor(reshape(xy, (2, 1))) +\
-             s*(1.0-2.0*cFloatTensor(2, n).uniform_())
-    inds = coords.mul_(imsize).type(cLongTensor)
-
-    self.vals[:,inds[0, :], inds[1, :]] += self.fg
-
-
-
-    print(inds)
+    xy = random((n, 2))
+    self._dot(xy)
 
