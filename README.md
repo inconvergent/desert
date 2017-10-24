@@ -2,6 +2,16 @@
 
 A scalable CUDA library for drawing.
 
+## TODO
+
+- [ ] Stroke
+- [ ] Circle
+- [ ] Spline
+
+- [ ] Primitive Classes
+- [ ] API/worker
+- [ ] MQ support?
+
 
 ## Dependencies
 
