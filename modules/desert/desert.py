@@ -74,21 +74,14 @@ class Desert():
     im = Image.fromarray(unpack(self.img, imsize))
     plt.imshow(im)
 
-  def box(self, s, mid, dens):
-
-    try:
-      sx, sy = s
-    except TypeError:
-      sx = s
-      sy = s
-
-    n = int(4*sx*sy*dens*(self.imsize2))
-    xy = (1-2*random((n, 2))) * s + mid
+  def _box(self, box):
+    n = box.get_n(self.imsize)
+    xy = (1-2*random((n, 2))) * box.s + box.mid
     self._dot(xy)
 
-  def circle(self, s, mid, dens):
+  # def circle(self, s, mid, dens):
 
-    n = int(4*sx*sy*dens*(self.imsize2))
-    xy = (1-2*random((n, 2))) * s + mid
-    self._dot(xy)
+  #   n = int(4*sx*sy*dens*(self.imsize2))
+  #   xy = (1-2*random((n, 2))) * s + mid
+  #   self._dot(xy)
 
