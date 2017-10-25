@@ -23,6 +23,8 @@ from modules.helpers import load_kernel
 from modules.helpers import pre_alpha
 from modules.helpers import unpack
 
+from modules.shapes import Box
+
 
 TWOPI = pi*2
 
@@ -43,6 +45,7 @@ class Desert():
 
     self.threads = 512
 
+    self.__init_fxn()
     self.__cuda_init()
 
   def __cuda_init(self):
@@ -52,6 +55,12 @@ class Desert():
         subs={'_THREADS_': self.threads}
         )
 
+  def __init_fxn(self):
+    self._fxn = {
+        'Box': self._box
+        }
+
+
   def _dot(self, xy):
     n, _ = xy.shape
     imsize = self.imsize
@@ -60,14 +69,12 @@ class Desert():
     self.cuda_dot(
         npint(n),
         npint(imsize),
-        inout_(self.img[:, :]),
+        inout_(self.img),
         in_(xy.astype(npfloat)),
         in_(self.fg),
         block=(self.threads, 1, 1),
         grid=(blocks, 1)
         )
-
-    print(self.img)
 
   def imshow(self):
     imsize = self.imsize
@@ -76,8 +83,16 @@ class Desert():
 
   def _box(self, box):
     n = box.get_n(self.imsize)
+    print(n)
     xy = (1-2*random((n, 2))) * box.s + box.mid
     self._dot(xy)
+
+  def draw(self, ll):
+
+    for l in ll:
+      # print(l.__class__.__name__)
+      self._fxn[l.__class__.__name__](l)
+
 
   # def circle(self, s, mid, dens):
 
