@@ -26,6 +26,7 @@ def unpack(img, sx, sy):
         reshape(img[:, 2], (sy, sx)),
         ))*255 , (0, 1, 2)))
   print(im.shape)
+  print(im)
   return image.fromarray(im)
 
 
@@ -62,7 +63,7 @@ def main():
 
     res = unpack(val, sx, sy)
 
-    res.save("/mnt/c/Users/anders/Desktop/res.png")
+    res.save("/tmp/res.png")
 
 
 if __name__ == "__main__":

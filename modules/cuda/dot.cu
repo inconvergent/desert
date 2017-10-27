@@ -16,26 +16,40 @@
 
 /*__device__ inline void atomicSaxpy(float *adr,*/
 /*                            const float ia,*/
-/*                            const float k){*/
+/*                            const float k,*/
+/*                            const float h){*/
 /*  float old = -1.0f;*/
 /*  float new_old;*/
 
 /*  do {*/
 /*    new_old = atomicExch(adr, -1.0f);*/
 /*    new_old = ia*new_old + k;*/
+/*    [>new_old = h;<]*/
 /*  } while ((old = atomicExch(adr, new_old)) != -1.0f);*/
 /*}*/
 
 __device__ inline void atomicSaxpy(float *adr,
                             const float ia,
-                            const float k){
+                            const float k,
+                            const float h){
 
   float old = atomicExch(adr, -1.0f);
-  float new_old = old*ia + k;
+  float new_;
+  if (old <= -1.0f){
+    new_ = -1.0f;
+  }else{
+    new_ = old*ia + k;
+  }
 
-  while ((old = atomicExch(adr, new_old)) != -1.0f) {
-    new_old = atomicExch(adr, -1.0f);
-    new_old = old*ia +k;
+  /*while ((old = atomicExch(adr, new_)) != -1.0f) {*/
+  /*  new_ = old*ia + k;*/
+  /*}*/
+  while (true) {
+    old = atomicExch(adr, new_);
+    if (old<=-1.0f){
+      break;
+    }
+    new_ = old*ia + k;
   }
 }
 
@@ -64,9 +78,14 @@ __global__ void dot(const int n,
 
   const int ij = 4*(x*imsize+y);
 
-  atomicSaxpy(&img[ij], ia, rgba[0]);
-  atomicSaxpy(&img[ij+1], ia, rgba[1]);
-  atomicSaxpy(&img[ij+2], ia, rgba[2]);
-  atomicSaxpy(&img[ij+3], ia, rgba[3]);
+  /*dont know if the syncs are needed.*/
+  __syncthreads();
+  atomicSaxpy(&img[ij], ia, rgba[0]  , (float)i);
+  __syncthreads();
+  atomicSaxpy(&img[ij+1], ia, rgba[1], (float)i);
+  __syncthreads();
+  atomicSaxpy(&img[ij+2], ia, rgba[2], (float)i);
+  __syncthreads();
+  /*atomicSaxpy(&img[ij+3], ia, rgba[3], (float)i);*/
 }
 
