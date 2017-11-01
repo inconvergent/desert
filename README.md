@@ -1,14 +1,17 @@
 # Desert
 
-A scalable CUDA library for drawing.
+A fast library for sandpainting: http://inconvergent.net/grains-of-sand/
+
 
 ## TODO
 
+- [x] Box
 - [ ] Stroke
 - [ ] Circle
 - [ ] Spline
 
-- [ ] Primitive Classes
+- [x] Color
+
 - [ ] API/worker
 - [ ] MQ support?
 
