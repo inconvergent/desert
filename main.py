@@ -7,31 +7,22 @@ from modules import Desert
 from modules.shapes import Box
 
 
+
 def main():
-  imsize = 10
-  d = Desert(imsize, fg=(0.0, 0.0, 0.0, 0.1),
+  imsize = 2000
+  d = Desert(imsize, fg=(1.0, 0.0, 0.0, 0.1),
                      bg=(1.0, 1.0, 1.0, 1.0))
+
+  d.draw([
+      Box(0.3, (0.3, 0.3), 1.0),
+      Box(0.2, (0.7, 0.5), 0.1),
+      Box(0.2, (0.9, 0.9), 1.0),
+      Box((0.8, 0.2), (0.1, 0.9), 10.0),
+      ])
+
 
   fig = plt.figure()
   fig.patch.set_facecolor('gray')
-
-  # ll = []
-  # for _ in range(10):
-  #   b = Box(0.5, (0.5, 0.5), 1.0)
-  #   ll.append(b)
-  # d.draw(ll)
-
-  print(d.img)
-  d._box(Box(0.5, (0.5, 0.5), 1.0))
-  print(d.img)
-  # d._box(Box(0.5, (0.5, 0.5), 1.0))
-  # print(d.img)
-  # d._box(Box(0.5, (0.5, 0.5), 1.0))
-  # d._box(Box(0.5, (0.5, 0.5), 1.0))
-  # d._box(Box(0.5, (0.5, 0.5), 1.0))
-  # d._box(Box(0.5, (0.5, 0.5), 1.0))
-
-  # axes = fig.add_subplot(1, 1, 1, facecolor='red')
   d.imshow()
   plt.pause(1)
 

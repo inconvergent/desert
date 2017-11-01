@@ -1,14 +1,18 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from collections import Counter
 
 from pycuda.compiler import SourceModule
-from numpy import reshape
 from numpy import column_stack
-from numpy import float32 as npfloat
-from numpy import uint8 as npuint8
 from numpy import dstack
+from numpy import float32 as npfloat
+from numpy import int32 as npint
+from numpy import logical_and
+from numpy import reshape
+from numpy import row_stack
 from numpy import transpose
+from numpy import uint8 as npuint8
 
 
 def load_kernel(fn, name, subs=None):
@@ -25,18 +29,20 @@ def load_kernel(fn, name, subs=None):
   return mod.get_function(name)
 
 
-def pre_alpha(c):
-  r, g, b, a = c
-  return reshape([a*r , a*g, a*b, a], (1, 4)).astype(npfloat)
+def ind_filter(xy):
+  return xy[logical_and(
+          logical_and(xy[:, 0]>=0, xy[:,0]<1.0),
+          logical_and(xy[:, 1]>=0, xy[:,1]<1.0)), :]
 
 
-# def unpack(v, imsize):
-#   alpha = v[:, 3:4]
-#   return reshape(npuint8(column_stack((v[:, :3]/alpha, alpha))*255),
-#                  (imsize, imsize, 4))
+
+def agg(xy, imsize):
+  return row_stack(Counter(imsize * (xy[:, 1]*imsize).astype(npint) +
+                           (xy[:, 0]*imsize).astype(npint)).items())\
+           .astype(npint)
 
 
-def unpack(img, imsize):
+def unpack(img, imsize, verbose=False):
   alpha = reshape(img[:, 3], (imsize, imsize))
 
   im = npuint8(
@@ -47,14 +53,11 @@ def unpack(img, imsize):
           reshape(img[:, 2], (imsize, imsize))/alpha,
           ))*255 , (0, 1, 2)))
 
-  print(im.shape)
-  print(im[:, :, 0])
-  print(im[:, :, 1])
-  print(im[:, :, 2])
-  # print(im[:, :, 3])
+  if verbose:
+    print(im.shape)
+    print(im[:, :, 0])
+    print(im[:, :, 1])
+    print(im[:, :, 2])
 
   return im
-  # return image.fromarray(im)
-
-
 
