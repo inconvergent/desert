@@ -13,7 +13,6 @@ from numpy.random import random
 
 import pycuda.driver as cuda
 
-
 import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -25,7 +24,7 @@ from modules.helpers import unpack
 TWOPI = pi*2
 
 
-class Desert():
+class desert():
 
   def __init__(self, imsize, fg, bg, show=True):
     self.imsize = imsize
@@ -91,4 +90,10 @@ class Desert():
     plt.imshow(im)
     if pause > 0:
       plt.pause(pause)
+
+  def imsave(self, fn):
+    imsize = self.imsize
+    cuda.memcpy_dtoh(self.img, self._img)
+    im = Image.fromarray(unpack(self.img, imsize))
+    im.save(fn)
 

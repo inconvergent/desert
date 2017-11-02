@@ -6,7 +6,7 @@ A fast library for sandpainting: http://inconvergent.net/grains-of-sand/
 ## TODO
 
 - [x] Box
-- [ ] Stroke
+- [x] Stroke(s)
 - [ ] Circle
 - [ ] Spline
 

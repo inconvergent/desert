@@ -2,7 +2,6 @@
 
 __global__ void box(const int n,
                     float *xy,
-                    const float imsize,
                     const float *s,
                     const float *mid){
 

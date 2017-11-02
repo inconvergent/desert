@@ -2,17 +2,20 @@
 # -*- coding: utf-8 -*-
 
 
-from modules import Desert
+from modules.desert import desert
+from modules.desert import box
+from modules.desert import strokes
+
 from modules.color import rgb
 from modules.color import white
-from modules.shapes import box
 
 
 
 def main():
   imsize = 1000
-  d = Desert(imsize, fg=rgb(1.0, 0.0, 0.0, 0.1),
-                     bg=white())
+  d = desert(imsize,
+             fg=rgb(1.0, 0.0, 0.0, 0.1),
+             bg=white())
 
   d.draw([
       box(0.3, (0.3, 0.3), 1.0),
@@ -30,8 +33,19 @@ def main():
       box((0.9, 0.2), (0.1, 0.9), 2.0),
       ], verbose=True)
 
+  d.draw([
+    strokes([[0.1, 0.1],
+             [0.1, 0.1],
+             [0.1, 0.9],
+             [0.1, 0.1]],
+            [[0.9, 0.9],
+             [0.1, 0.9],
+             [0.9, 0.9],
+             [0.2, 0.15]], 1)
+    ], verbose=True)
 
-  d.imshow(pause=0.5)
+  # d.imshow(pause=10)
+  d.imsave('/tmp/test.png')
 
 
 if __name__ == '__main__':
