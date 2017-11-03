@@ -13,6 +13,7 @@ A fast library for sandpainting: http://inconvergent.net/grains-of-sand/
 - [ ] Spline
 - [x] Color
 - [ ] Color: hsv, cmyk
+- [ ] Json import/export of classes
 
 - [ ] API/worker
 - [ ] MQ support?

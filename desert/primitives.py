@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from time import time
-from functools import wraps
+from json import dumps
+from json import loads
 
 import pycuda.driver as cuda
 
@@ -16,8 +16,12 @@ from numpy import zeros
 from numpy import column_stack
 from numpy.random import random
 
-from .helpers import load_kernel
 from .helpers import ind_filter
+from .helpers import is_verbose
+from .helpers import json_array
+from .helpers import load_kernel
+from .helpers import pfloat
+
 
 
 THREADS = 256
@@ -25,18 +29,6 @@ TWOPI = 2.0*PI
 
 
 # http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#kernels
-
-def is_verbose(f):
-  @wraps(f)
-  def inside(*args, **kwargs):
-    st0 = time()
-    res = f(*args, **kwargs)
-    if 'verbose' in kwargs and kwargs['verbose'] is not None:
-      self = args[0]
-      print('## {:s} time: {:0.4f}'.format(str(self), time()-st0))
-    return res
-  return inside
-
 
 class box():
   def __init__(self, s, mid, dens, threads=THREADS):
@@ -69,9 +61,29 @@ class box():
   def __repr__(self):
     return '<box n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
 
+  @staticmethod
+  def from_json(j):
+    if isinstance(j, str):
+      j = loads(j)
+    data = j['_data']
+    return box(data['s'], data['mid'], data['dens'])
+
   def _get_n(self, imsize):
     s = self.s
     return int(4*prod(s, axis=1)*self.dens*(imsize**2))
+
+  def est(self, imsize):
+    return self._get_n(imsize) * self.num
+
+  def json(self):
+    return dumps({
+        '_type': 'box',
+        '_data': {
+            'mid': json_array(self.mid),
+            's': json_array(self.s).pop(),
+            'dens': pfloat(self.dens),
+            }
+        })
 
   @is_verbose
   def sample(self, imsize, verbose=False):
@@ -119,6 +131,26 @@ class circle():
 
   def _get_n(self, imsize):
     return int(self.dens*PI*(self.rad*imsize)**2)
+
+  def est(self, imsize):
+    return self._get_n(imsize) * self.num
+
+  def json(self):
+    return dumps({
+        '_type': 'circle',
+        '_data': {
+            'rad': pfloat(self.rad),
+            'mid': json_array(self.mid),
+            'dens': pfloat(self.dens),
+            }
+        })
+
+  @staticmethod
+  def from_json(j):
+    if isinstance(j, str):
+      j = loads(j)
+    data = j['_data']
+    return circle(data['rad'], data['mid'], data['dens'])
 
   @is_verbose
   def sample(self, imsize, verbose=False):
@@ -170,6 +202,26 @@ class stroke():
 
   def _get_n(self, imsize):
     return int(self.dens*imsize)
+
+  def est(self, imsize):
+    return self._get_n(imsize) * self.num
+
+  def json(self):
+    return dumps({
+        '_type': 'stroke',
+        '_data': {
+            'a': json_array(self.ab[:, :2]),
+            'b': json_array(self.ab[:, 2:]),
+            'dens': pfloat(self.dens),
+            }
+        })
+
+  @staticmethod
+  def from_json(j):
+    if isinstance(j, str):
+      j = loads(j)
+    data = j['_data']
+    return stroke(data['a'], data['b'], data['dens'])
 
   @is_verbose
   def sample(self, imsize, verbose=False):

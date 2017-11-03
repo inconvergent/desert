@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from collections import Counter
+from functools import wraps
+from time import time
 
 from pycuda.compiler import SourceModule
 from numpy import column_stack
@@ -31,8 +33,8 @@ def load_kernel(fn, name, subs=None):
 
 def ind_filter(xy):
   return xy[logical_and(
-          logical_and(xy[:, 0]>=0, xy[:,0]<1.0),
-          logical_and(xy[:, 1]>=0, xy[:,1]<1.0)), :]
+            logical_and(xy[:, 0]>=0, xy[:,0]<1.0),
+            logical_and(xy[:, 1]>=0, xy[:,1]<1.0)), :]
 
 
 
@@ -47,11 +49,11 @@ def unpack(img, imsize, verbose=False):
 
   im = npuint8(
       transpose(
-        dstack((
-          reshape(img[:, 0], (imsize, imsize))/alpha,
-          reshape(img[:, 1], (imsize, imsize))/alpha,
-          reshape(img[:, 2], (imsize, imsize))/alpha,
-          ))*255 , (0, 1, 2)))
+          dstack((
+              reshape(img[:, 0], (imsize, imsize))/alpha,
+              reshape(img[:, 1], (imsize, imsize))/alpha,
+              reshape(img[:, 2], (imsize, imsize))/alpha,
+              ))*255, (0, 1, 2)))
 
   if verbose:
     print(im.shape)
@@ -60,4 +62,32 @@ def unpack(img, imsize, verbose=False):
     print(im[:, :, 2])
 
   return im
+
+
+def pfloat(f):
+  return float('{:0.8f}'.format(f))
+
+
+def json_array(aa):
+  l = []
+  for a in aa:
+    try:
+      l.append(tuple(pfloat(k) for k in a))
+    except Exception:
+      l.append((pfloat(a)))
+  return l
+
+
+def is_verbose(f):
+  @wraps(f)
+  def inside(*args, **kwargs):
+    st0 = time()
+    res = f(*args, **kwargs)
+    if 'verbose' in kwargs and kwargs['verbose'] is not None:
+      self = args[0]
+      print('## {:s} time: {:0.4f}'.format(str(self), time()-st0))
+    return res
+  return inside
+
+
 
