@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from time import time
+from functools import wraps
 
 import pycuda.driver as cuda
+
+import pkg_resources
 
 from numpy import float32 as npfloat
 from numpy import int32 as npint
@@ -13,8 +16,8 @@ from numpy import zeros
 from numpy import column_stack
 from numpy.random import random
 
-from modules.helpers import load_kernel
-from modules.helpers import ind_filter
+from .helpers import load_kernel
+from .helpers import ind_filter
 
 
 THREADS = 256
@@ -22,6 +25,17 @@ TWOPI = 2.0*PI
 
 
 # http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#kernels
+
+def is_verbose(f):
+  @wraps(f)
+  def inside(*args, **kwargs):
+    st0 = time()
+    res = f(*args, **kwargs)
+    if 'verbose' in kwargs and kwargs['verbose'] is not None:
+      self = args[0]
+      print('## {:s} time: {:0.4f}'.format(str(self), time()-st0))
+    return res
+  return inside
 
 
 class box():
@@ -47,18 +61,19 @@ class box():
     cuda.memcpy_htod(self._mid, self.mid)
 
     self.cuda_sample = load_kernel(
-        'modules/cuda/box.cu',
+         pkg_resources.resource_filename('desert', 'cuda/box.cu'),
         'box',
         subs={'_THREADS_': self.threads}
         )
 
   def __repr__(self):
-    return '<box n: {: 8d} d: {:0.3f}>'.format(self.num, self.dens)
+    return '<box n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
 
   def _get_n(self, imsize):
     s = self.s
     return int(4*prod(s, axis=1)*self.dens*(imsize**2))
 
+  @is_verbose
   def sample(self, imsize, verbose=False):
 
     grains = self._get_n(imsize)
@@ -66,7 +81,6 @@ class box():
     blocks = int(ng//self.threads + 1)
     shape = (ng, 2)
 
-    st0 = time()
     xy = random(shape).astype(npfloat)
 
     self.cuda_sample(npint(ng),
@@ -75,9 +89,6 @@ class box():
                      npint(grains),
                      block=(self.threads, 1, 1),
                      grid=(blocks, 1))
-
-    if verbose is not None:
-      print('## {:s}        time: {:0.4f}'.format(str(self), time()-st0))
 
     return ind_filter(xy)
 
@@ -98,17 +109,18 @@ class circle():
     cuda.memcpy_htod(self._mid, self.mid)
 
     self.cuda_sample = load_kernel(
-        'modules/cuda/circle.cu',
+         pkg_resources.resource_filename('desert', 'cuda/circle.cu'),
         'circle',
         subs={'_THREADS_': self.threads}
         )
 
   def __repr__(self):
-    return '<circle n: {: 8d} d: {:0.3f}>'.format(self.num, self.dens)
+    return '<circle n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
 
   def _get_n(self, imsize):
     return int(self.dens*PI*(self.rad*imsize)**2)
 
+  @is_verbose
   def sample(self, imsize, verbose=False):
 
     grains = self._get_n(imsize)
@@ -116,7 +128,6 @@ class circle():
     blocks = int(ng//self.threads + 1)
     shape = (ng, 3)
 
-    st0 = time()
     xy = random(shape).astype(npfloat)
 
     self.cuda_sample(npint(ng),
@@ -126,9 +137,6 @@ class circle():
                      npint(grains),
                      block=(self.threads, 1, 1),
                      grid=(blocks, 1))
-
-    if verbose is not None:
-      print('## {:s}     time: {:0.4f}'.format(str(self), time()-st0))
 
     return ind_filter(xy[:, :2])
 
@@ -152,17 +160,18 @@ class stroke():
     cuda.memcpy_htod(self._ab, self.ab)
 
     self.cuda_sample = load_kernel(
-        'modules/cuda/stroke.cu',
+         pkg_resources.resource_filename('desert', 'cuda/stroke.cu'),
         'stroke',
         subs={'_THREADS_': self.threads}
         )
 
   def __repr__(self):
-    return '<stroke n: {: 8d} d: {:0.3f}>'.format(self.num, self.dens)
+    return '<stroke n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
 
   def _get_n(self, imsize):
     return int(self.dens*imsize)
 
+  @is_verbose
   def sample(self, imsize, verbose=False):
 
     grains = self._get_n(imsize)
@@ -170,7 +179,6 @@ class stroke():
     blocks = int(ng//self.threads + 1)
     shape = (ng, 2)
 
-    st0 = time()
     xy = zeros(shape).astype(npfloat)
     xy[:, 0] = random(ng).astype(npfloat)
 
@@ -180,9 +188,6 @@ class stroke():
                      npint(grains),
                      block=(self.threads, 1, 1),
                      grid=(blocks, 1))
-
-    if verbose is not None:
-      print('## {:s}     time: {:0.4f}'.format(str(self), time()-st0))
 
     return ind_filter(xy)
 

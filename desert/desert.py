@@ -4,6 +4,8 @@ from time import time
 
 import matplotlib.pyplot as plt
 
+import pkg_resources
+
 from numpy import float32 as npfloat
 from numpy import int32 as npint
 from numpy import pi
@@ -14,17 +16,17 @@ import pycuda.driver as cuda
 
 from PIL import Image
 
-from modules.helpers import agg
-from modules.helpers import load_kernel
-from modules.helpers import unpack
+from .helpers import agg
+from .helpers import load_kernel
+from .helpers import unpack
 
 
 TWOPI = pi*2
 
 
-class desert():
+class Desert():
 
-  def __init__(self, imsize, fg, bg, show=True):
+  def __init__(self, imsize, fg, bg, show=True, verbose=False):
     self.imsize = imsize
     self.imsize2 = imsize*imsize
     self.img = zeros((self.imsize2, 4), npfloat)
@@ -40,7 +42,7 @@ class desert():
 
     # https://documen.tician.de/pycuda/tutorial.html#executing-a-kernel
     self.cuda_dot = load_kernel(
-        'modules/cuda/dot.cu',
+         pkg_resources.resource_filename('desert', 'cuda/dot.cu'),
         'dot',
         subs={'_THREADS_': self.threads}
         )
@@ -49,7 +51,9 @@ class desert():
     if show:
       self.fig = plt.figure()
       self.fig.patch.set_facecolor('gray')
+
     self._updated = False
+    self.verbose = verbose
 
   def set_fg(self, c):
     self.fg = c
@@ -65,22 +69,22 @@ class desert():
     cuda.memcpy_htod(self._img, self.img)
     self._updated = True
 
-  def draw(self, shapes, verbose=None):
+  def draw(self, shapes):
     imsize = self.imsize
 
     l = []
     c = 0
     pt0 = time()
 
-    sample_verbose = True if verbose == 'vv' else None
+    sample_verbose = True if self.verbose == 'vv' else None
 
     for s in shapes:
-      l.append(s.sample(imsize, sample_verbose))
+      l.append(s.sample(imsize, verbose=sample_verbose))
       c += 1
     dots = agg(row_stack(l), imsize)
 
-    if verbose is not None:
-      print('-- sampled primitives: {: 12d}. time: {:0.4f}'.format(
+    if self.verbose is not None:
+      print('-- sampled primitives: {:d}. time: {:0.4f}'.format(
             c, time()-pt0))
 
     n, _ = dots.shape
@@ -94,28 +98,30 @@ class desert():
                   block=(self.threads, 1, 1),
                   grid=(blocks, 1))
 
-    if verbose is not None:
-      print('-- drew dots:          {: 12d}. time: {:0.4f}'.format(
+    if self.verbose is not None:
+      print('-- drew dots: {:d}. time: {:0.4f}'.format(
             n, time()-dt0))
     self._updated = True
 
-  def imshow(self, pause=0):
+  def imshow(self, pause=0.00001):
     imsize = self.imsize
+    t0 = time()
 
     if self._updated:
       cuda.memcpy_dtoh(self.img, self._img)
       self._updated = False
-    im = Image.fromarray(unpack(self.img, imsize))
-    plt.imshow(im)
-    if pause > 0:
-      plt.pause(pause)
+    plt.imshow(Image.fromarray(unpack(self.img, imsize)))
+    if self.verbose == 'vv':
+      print('-- show. time: {:0.4f}'\
+          .format(time()-t0))
+
+    plt.pause(pause)
 
   def imsave(self, fn):
     imsize = self.imsize
-    print('file:', fn, (imsize, imsize))
+    print('.. wrote:', fn, (imsize, imsize))
     if self._updated:
       cuda.memcpy_dtoh(self.img, self._img)
       self._updated = False
-    im = Image.fromarray(unpack(self.img, imsize))
-    im.save(fn)
+    Image.fromarray(unpack(self.img, imsize)).save(fn)
 

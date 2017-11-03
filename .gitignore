@@ -1,6 +1,7 @@
-res/*
+examples/res/*.png
+examples/*.png
 *.swp
 *.pyc
 build
-tmp.png
+*.egg-info/
 __pycache__

@@ -5,19 +5,19 @@ from sys import argv
 
 from numpy.random import random
 
-from modules.desert import desert
-from modules.desert import box
-from modules.desert import stroke
+from desert import Desert
+from desert import box
+from desert import stroke
 
-from modules.color import black
-from modules.color import white
+from desert.color import black
+from desert.color import white
 
-from modules.rnd import in_circle
+from desert.rnd import in_circle
 
 
 def main(arg):
   imsize = 1000
-  d = desert(imsize,
+  d = Desert(imsize,
              fg=black(0.1),
              bg=white())
 
@@ -30,14 +30,18 @@ def main(arg):
 
   drift = in_circle(1, 0, 0, 0.00001)
 
-  for i in range(10000):
-    if not i%1000:
-      print(i)
+  for i in range(1, 10000):
     xya += in_circle(num, 0, 0, 0.001) + drift
     xyb += in_circle(num, 0, 0, 0.001) + drift
     stack.append(stroke(xya, xyb, 0.01))
 
-  d.draw(stack)
+    if not i%2000:
+      print(i)
+      d.draw(stack)
+      d.imshow(0.1)
+      stack = []
+
+  d.imshow(1)
 
   try:
     fn = arg[1] + '.png'
