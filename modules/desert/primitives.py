@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from time import time
+
 import pycuda.driver as cuda
 
 from numpy import float32 as npfloat
 from numpy import int32 as npint
 from numpy import prod
 from numpy import reshape
+from numpy import pi as PI
 from numpy import zeros
 from numpy import column_stack
 from numpy.random import random
@@ -14,7 +17,8 @@ from modules.helpers import load_kernel
 from modules.helpers import ind_filter
 
 
-THREADS = 512
+THREADS = 256
+TWOPI = 2.0*PI
 
 
 # http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#kernels
@@ -30,8 +34,10 @@ class box():
       sy = s
 
     self.s = reshape([sx, sy], (1, 2)).astype(npfloat)
-    self.mid = reshape(mid, (1, 2)).astype(npfloat)
+    self.mid = reshape(mid, (-1, 2)).astype(npfloat)
     self.dens = dens
+
+    self.num = self.mid.shape[0]
 
     self.threads = threads
 
@@ -47,10 +53,7 @@ class box():
         )
 
   def __repr__(self):
-    return '<box s: ({:0.4f} {:0.4f}) xy: ({:0.4f}, {:0.4f}) d: {:0.4f}>'\
-        .format(self.s[0, 0], self.s[0, 1],
-                self.mid[0, 0], self.mid[0, 1],
-                self.dens)
+    return '<box n: {: 8d} d: {:0.3f}>'.format(self.num, self.dens)
 
   def _get_n(self, imsize):
     s = self.s
@@ -58,24 +61,79 @@ class box():
 
   def sample(self, imsize, verbose=False):
 
-    n = self._get_n(imsize)
-    blocks = int(n//self.threads + 1)
-    shape = (n, 2)
+    grains = self._get_n(imsize)
+    ng = self.num*grains
+    blocks = int(ng//self.threads + 1)
+    shape = (ng, 2)
 
+    st0 = time()
     xy = random(shape).astype(npfloat)
-    self.cuda_sample(npint(n),
+
+    self.cuda_sample(npint(ng),
                      cuda.InOut(xy),
                      self._s, self._mid,
+                     npint(grains),
                      block=(self.threads, 1, 1),
                      grid=(blocks, 1))
 
-    if verbose:
-      print(self)
+    if verbose is not None:
+      print('## {:s}        time: {:0.4f}'.format(str(self), time()-st0))
 
     return ind_filter(xy)
 
 
-class strokes():
+class circle():
+  def __init__(self, rad, mid, dens, threads=THREADS):
+
+
+    self.rad = rad
+    self.mid = reshape(mid, (-1, 2)).astype(npfloat)
+    self.dens = dens
+
+    self.num = self.mid.shape[0]
+
+    self.threads = threads
+
+    self._mid = cuda.mem_alloc(self.mid.nbytes)
+    cuda.memcpy_htod(self._mid, self.mid)
+
+    self.cuda_sample = load_kernel(
+        'modules/cuda/circle.cu',
+        'circle',
+        subs={'_THREADS_': self.threads}
+        )
+
+  def __repr__(self):
+    return '<circle n: {: 8d} d: {:0.3f}>'.format(self.num, self.dens)
+
+  def _get_n(self, imsize):
+    return int(self.dens*PI*(self.rad*imsize)**2)
+
+  def sample(self, imsize, verbose=False):
+
+    grains = self._get_n(imsize)
+    ng = self.num*grains
+    blocks = int(ng//self.threads + 1)
+    shape = (ng, 3)
+
+    st0 = time()
+    xy = random(shape).astype(npfloat)
+
+    self.cuda_sample(npint(ng),
+                     cuda.InOut(xy),
+                     npfloat(self.rad),
+                     self._mid,
+                     npint(grains),
+                     block=(self.threads, 1, 1),
+                     grid=(blocks, 1))
+
+    if verbose is not None:
+      print('## {:s}     time: {:0.4f}'.format(str(self), time()-st0))
+
+    return ind_filter(xy[:, :2])
+
+
+class stroke():
   def __init__(self, a, b, dens, threads=THREADS):
 
     a = reshape(a, (-1, 2)).astype(npfloat)
@@ -94,15 +152,13 @@ class strokes():
     cuda.memcpy_htod(self._ab, self.ab)
 
     self.cuda_sample = load_kernel(
-        'modules/cuda/strokes.cu',
-        'strokes',
+        'modules/cuda/stroke.cu',
+        'stroke',
         subs={'_THREADS_': self.threads}
         )
 
   def __repr__(self):
-    return '<strokes n: {:d} d: {:0.4f}>'.format(
-        self.num,
-        self.dens)
+    return '<stroke n: {: 8d} d: {:0.3f}>'.format(self.num, self.dens)
 
   def _get_n(self, imsize):
     return int(self.dens*imsize)
@@ -110,21 +166,23 @@ class strokes():
   def sample(self, imsize, verbose=False):
 
     grains = self._get_n(imsize)
-    blocks = int(self.num*grains//self.threads + 1)
-    shape = (self.num*grains, 2)
+    ng = self.num*grains
+    blocks = int(ng//self.threads + 1)
+    shape = (ng, 2)
 
+    st0 = time()
     xy = zeros(shape).astype(npfloat)
-    xy[:, 0] = random(self.num*grains).astype(npfloat)
+    xy[:, 0] = random(ng).astype(npfloat)
 
-    self.cuda_sample(npint(self.num*grains),
+    self.cuda_sample(npint(ng),
                      self._ab,
                      cuda.InOut(xy),
                      npint(grains),
                      block=(self.threads, 1, 1),
                      grid=(blocks, 1))
 
-    if verbose:
-      print(self)
+    if verbose is not None:
+      print('## {:s}     time: {:0.4f}'.format(str(self), time()-st0))
 
     return ind_filter(xy)
 

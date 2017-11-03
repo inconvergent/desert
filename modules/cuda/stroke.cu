@@ -1,9 +1,9 @@
 #define THREADS _THREADS_
 
-__global__ void strokes(const int n,
-                        const float *ab,
-                        float *xy,
-                        const int grains){
+__global__ void stroke(const int n,
+                       const float *ab,
+                       float *xy,
+                       const int grains){
 
   const int i = blockIdx.x*THREADS + threadIdx.x;
 

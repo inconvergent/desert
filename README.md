@@ -6,11 +6,13 @@ A fast library for sandpainting: http://inconvergent.net/grains-of-sand/
 ## TODO
 
 - [x] Box
-- [x] Stroke(s)
-- [ ] Circle
+- [ ] Box: varying size
+- [x] Stroke
+- [x] Circle
+- [ ] Circle: varying rad
 - [ ] Spline
-
 - [x] Color
+- [ ] Color: hsv, cmyk
 
 - [ ] API/worker
 - [ ] MQ support?

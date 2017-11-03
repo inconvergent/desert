@@ -2,4 +2,5 @@ res/*
 *.swp
 *.pyc
 build
+tmp.png
 __pycache__

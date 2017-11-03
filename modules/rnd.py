@@ -40,3 +40,4 @@ def in_circle(n, xx, yy, rr):
   xyp = reshape(rr * r, (n, 1)) * column_stack((cos(t), sin(t)))
   dartsxy = xyp + array([xx, yy])
   return dartsxy
+

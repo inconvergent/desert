@@ -7,7 +7,7 @@ from numpy.random import random
 
 from modules.desert import desert
 from modules.desert import box
-from modules.desert import strokes
+from modules.desert import stroke
 
 from modules.color import black
 from modules.color import white
@@ -35,7 +35,7 @@ def main(arg):
       print(i)
     xya += in_circle(num, 0, 0, 0.001) + drift
     xyb += in_circle(num, 0, 0, 0.001) + drift
-    stack.append(strokes(xya, xyb, 0.01))
+    stack.append(stroke(xya, xyb, 0.01))
 
   d.draw(stack)
 
@@ -43,8 +43,6 @@ def main(arg):
     fn = arg[1] + '.png'
   except Exception:
     fn = './tmp.png'
-
-  print('file:', fn)
 
   d.imsave(fn)
 
