@@ -45,7 +45,7 @@ class ErosionServer():
   def __enter__(self):
     print('>> running erosion server.')
     print('>> listening at: {:s}/{:s}.'.format(self.con, self.chan))
-    print('>> resolution: {:d}.'.format(self.imsize))
+    print('>> resolution: ({:d} {:d}).'.format(self.imsize, self.imsize))
     self.red = Redis(self.host, self.port)
     self.desert = Desert(self.imsize, show=False, verbose=self.verbose)
     return self
@@ -84,9 +84,8 @@ class ErosionServer():
           self.desert.imsave('./tmp.png')
           continue
 
-        if self.verbose:
-          cmd = type_router(j)
-          self.desert.draw([cmd])
+        cmd = type_router(j)
+        self.desert.draw([cmd])
       except KeyboardInterrupt:
         return
 

@@ -3,7 +3,7 @@
 """erosion
 
 Usage:
-  erosion [--chan=<c>] [--resolution=<r>] [--verbose]
+  erosion [--chan=<c>] [--resolution=<r>] [--v | --vv]
   erosion [--chan=<c>] --test
   erosion [--chan=<c>] --clear
   erosion -h
@@ -11,7 +11,8 @@ Usage:
 Options:
   -h                  Show this screen.
   --chan=<c>          Use this channel [default: erosion]
-  --verbose           More detailed output.
+  --v                 Verbose.
+  --vv                More verbose.
   --resolution=<r>    Canvas resolution. [default: 1000]
   --test              Send a test message to the server then exit.
   --clear             Clear channel.
@@ -44,7 +45,12 @@ def main(args):
   con = getenv('CON', 'localhost:6379')
   chan = args['--chan']
   res = int(args['--resolution'])
-  verbose = bool(args['--verbose'])
+
+  verbose = None
+  if args['--vv']:
+    verbose = 'vv'
+  elif args['--v']:
+    verbose = True
 
   erosion = ErosionServer(
       con,

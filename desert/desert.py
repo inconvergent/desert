@@ -28,20 +28,14 @@ TWOPI = pi*2
 
 
 
-class Fg(Rgba):
-  def __init__(self, *arg, **args):
-    Rgba.__init__(*arg, **args)
+# class Fg(Rgba):
+#   def __init__(self, *arg, **args):
+#     Rgba.__init__(*arg, **args)
 
 
-class Bg(Rgba):
-  def __init__(self, *arg, **args):
-    Rgba.__init__(*arg, **args)
-
-
-class Clear():
-  def __init__(self, bg=None):
-    self.bg = bg
-    pass
+# class Bg(Rgba):
+#   def __init__(self, *arg, **args):
+#     Rgba.__init__(*arg, **args)
 
 
 class Desert():

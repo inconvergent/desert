@@ -43,15 +43,19 @@ class box():
     self.dens = dens
 
     self.num = self.mid.shape[0]
-
     self.threads = threads
 
+    self._s = None
+    self._mid = None
+    self._cuda_sample = None
+
+  def __cuda_init(self):
     self._s = cuda.mem_alloc(self.s.nbytes)
     cuda.memcpy_htod(self._s, self.s)
     self._mid = cuda.mem_alloc(self.mid.nbytes)
     cuda.memcpy_htod(self._mid, self.mid)
 
-    self.cuda_sample = load_kernel(
+    self._cuda_sample = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/box.cu'),
         'box',
         subs={'_THREADS_': self.threads}
@@ -86,6 +90,8 @@ class box():
 
   @is_verbose
   def sample(self, imsize, verbose=False):
+    if self._cuda_sample is None:
+      self.__cuda_init()
     grains = self._get_n(imsize)
     ng = self.num*grains
     blocks = int(ng//self.threads + 1)
@@ -93,12 +99,12 @@ class box():
 
     xy = random(shape).astype(npfloat)
 
-    self.cuda_sample(npint(ng),
-                     cuda.InOut(xy),
-                     self._s, self._mid,
-                     npint(grains),
-                     block=(self.threads, 1, 1),
-                     grid=(blocks, 1))
+    self._cuda_sample(npint(ng),
+                      cuda.InOut(xy),
+                      self._s, self._mid,
+                      npint(grains),
+                      block=(self.threads, 1, 1),
+                      grid=(blocks, 1))
 
     return ind_filter(xy)
 
@@ -113,10 +119,14 @@ class circle():
 
     self.threads = threads
 
+    self._mid = None
+    self._cuda_sample = None
+
+  def __cuda_init(self):
     self._mid = cuda.mem_alloc(self.mid.nbytes)
     cuda.memcpy_htod(self._mid, self.mid)
 
-    self.cuda_sample = load_kernel(
+    self._cuda_sample = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/circle.cu'),
         'circle',
         subs={'_THREADS_': self.threads}
@@ -150,6 +160,8 @@ class circle():
 
   @is_verbose
   def sample(self, imsize, verbose=False):
+    if self._cuda_sample is None:
+      self.__cuda_init()
 
     grains = self._get_n(imsize)
     ng = self.num*grains
@@ -158,7 +170,7 @@ class circle():
 
     xy = random(shape).astype(npfloat)
 
-    self.cuda_sample(npint(ng),
+    self._cuda_sample(npint(ng),
                      cuda.InOut(xy),
                      npfloat(self.rad),
                      self._mid,
@@ -183,11 +195,14 @@ class stroke():
     self.dens = dens
 
     self.threads = threads
+    self._ab = None
+    self._cuda_sample = None
 
+  def __cuda_init(self):
     self._ab = cuda.mem_alloc(self.ab.nbytes)
     cuda.memcpy_htod(self._ab, self.ab)
 
-    self.cuda_sample = load_kernel(
+    self._cuda_sample = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/stroke.cu'),
         'stroke',
         subs={'_THREADS_': self.threads}
@@ -221,6 +236,9 @@ class stroke():
 
   @is_verbose
   def sample(self, imsize, verbose=False):
+    if self._cuda_sample is None:
+      self.__cuda_init()
+
     grains = self._get_n(imsize)
     ng = self.num*grains
     blocks = int(ng//self.threads + 1)
@@ -229,12 +247,12 @@ class stroke():
     xy = zeros(shape).astype(npfloat)
     xy[:, 0] = random(ng).astype(npfloat)
 
-    self.cuda_sample(npint(ng),
-                     self._ab,
-                     cuda.InOut(xy),
-                     npint(grains),
-                     block=(self.threads, 1, 1),
-                     grid=(blocks, 1))
+    self._cuda_sample(npint(ng),
+                      self._ab,
+                      cuda.InOut(xy),
+                      npint(grains),
+                      block=(self.threads, 1, 1),
+                      grid=(blocks, 1))
 
     return ind_filter(xy)
 
