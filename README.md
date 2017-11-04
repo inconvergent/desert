@@ -6,10 +6,9 @@ The main library is simply called `Desert`. It is a CUDA accelerated library
 for sandpainting: http://inconvergent.net/grains-of-sand/
 
 The second part is called `Erosion`. A Redis-based client and server that can
-accept and draw `Desert` primitives encoded as JSON objects.
-
-You do not need to use libraries. `Erosion` is most useful to seperate the
-drawing process from the generative algorithm. Eg. if you want to program in a
+accept and draw `Desert` primitives and commands encoded as JSON objects. That
+means that you can use the `Erosion` server from any platform as long as you
+can construct JSON and it to a Redis queue. Eg. if you want to program in a
 different language, while still having a fast drawing engine that benefits from
 CUDA.
 
