@@ -65,7 +65,7 @@ def unpack(img, imsize, verbose=False):
 
 
 def pfloat(f):
-  return float('{:0.8f}'.format(f))
+  return float('{:0.12f}'.format(f))
 
 
 def json_array(aa):

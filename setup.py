@@ -8,8 +8,14 @@ from setuptools import find_packages
 dependencies = [
     'pycuda',
     'matplotlib',
+    'redis',
     'numpy'
     ]
+
+packages = find_packages()
+
+print(packages)
+
 
 setup(
     name='desert',
@@ -20,7 +26,7 @@ setup(
     author='@inconvergent',
     author_email='inconvergent@gmail.com',
     install_requires=dependencies,
-    packages=find_packages(),
+    packages=packages,
     package_data={
         'desert': [
             'cuda/box.cu',
@@ -29,11 +35,11 @@ setup(
             'cuda/stroke.cu',
             ],
     },
-    # entry_points={
-    #     'console_scripts': [
-    #         'fn=fn:run'
-    #         ]
-    #     },
+    entry_points={
+        'console_scripts': [
+            'erosion=erosion:run'
+            ]
+        },
     zip_safe=True
     )
 

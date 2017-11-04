@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from json import dumps
 from json import loads
 
 import pycuda.driver as cuda
@@ -76,18 +75,17 @@ class box():
     return self._get_n(imsize) * self.num
 
   def json(self):
-    return dumps({
+    return {
         '_type': 'box',
         '_data': {
             'mid': json_array(self.mid),
             's': json_array(self.s).pop(),
             'dens': pfloat(self.dens),
             }
-        })
+        }
 
   @is_verbose
   def sample(self, imsize, verbose=False):
-
     grains = self._get_n(imsize)
     ng = self.num*grains
     blocks = int(ng//self.threads + 1)
@@ -107,8 +105,6 @@ class box():
 
 class circle():
   def __init__(self, rad, mid, dens, threads=THREADS):
-
-
     self.rad = rad
     self.mid = reshape(mid, (-1, 2)).astype(npfloat)
     self.dens = dens
@@ -136,14 +132,14 @@ class circle():
     return self._get_n(imsize) * self.num
 
   def json(self):
-    return dumps({
+    return {
         '_type': 'circle',
         '_data': {
             'rad': pfloat(self.rad),
             'mid': json_array(self.mid),
             'dens': pfloat(self.dens),
             }
-        })
+        }
 
   @staticmethod
   def from_json(j):
@@ -207,14 +203,14 @@ class stroke():
     return self._get_n(imsize) * self.num
 
   def json(self):
-    return dumps({
+    return {
         '_type': 'stroke',
         '_data': {
             'a': json_array(self.ab[:, :2]),
             'b': json_array(self.ab[:, 2:]),
             'dens': pfloat(self.dens),
             }
-        })
+        }
 
   @staticmethod
   def from_json(j):
@@ -225,7 +221,6 @@ class stroke():
 
   @is_verbose
   def sample(self, imsize, verbose=False):
-
     grains = self._get_n(imsize)
     ng = self.num*grains
     blocks = int(ng//self.threads + 1)

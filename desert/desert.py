@@ -19,14 +19,35 @@ from PIL import Image
 from .helpers import agg
 from .helpers import load_kernel
 from .helpers import unpack
+from .color import Rgba
+from .color import white
+from .color import black
 
 
 TWOPI = pi*2
 
 
+
+class Fg(Rgba):
+  def __init__(self, *arg, **args):
+    Rgba.__init__(*arg, **args)
+
+
+class Bg(Rgba):
+  def __init__(self, *arg, **args):
+    Rgba.__init__(*arg, **args)
+
+
+class Clear():
+  def __init__(self, bg=None):
+    self.bg = bg
+    pass
+
+
 class Desert():
 
-  def __init__(self, imsize, fg, bg, show=True, verbose=False):
+  def __init__(self, imsize,
+               fg=white(), bg=black(0.01), show=True, verbose=False):
     self.imsize = imsize
     self.imsize2 = imsize*imsize
     self.img = zeros((self.imsize2, 4), npfloat)
@@ -54,6 +75,7 @@ class Desert():
 
     self._updated = False
     self.verbose = verbose
+    self.__fg_set = set(['Rgba', 'Fg'])
 
   def set_fg(self, c):
     self.fg = c
@@ -69,23 +91,15 @@ class Desert():
     cuda.memcpy_htod(self._img, self.img)
     self._updated = True
 
-  def draw(self, shapes):
+  def _draw(self, l, t, c):
+    if not l:
+      return
     imsize = self.imsize
-
-    l = []
-    c = 0
-    pt0 = time()
-
-    sample_verbose = True if self.verbose == 'vv' else None
-
-    for s in shapes:
-      l.append(s.sample(imsize, verbose=sample_verbose))
-      c += 1
     dots = agg(row_stack(l), imsize)
 
     if self.verbose is not None:
       print('-- sampled primitives: {:d}. time: {:0.4f}'.format(
-            c, time()-pt0))
+            c, time()-t))
 
     n, _ = dots.shape
     blocks = int(n//self.threads + 1)
@@ -102,6 +116,37 @@ class Desert():
       print('-- drew dots: {:d}. time: {:0.4f}'.format(
             n, time()-dt0))
     self._updated = True
+
+  def draw(self, cmds):
+    imsize = self.imsize
+
+    l = []
+    c = 0
+    pt0 = time()
+
+    sample_verbose = True if self.verbose == 'vv' else None
+
+    for cmd in cmds:
+      c += 1
+      name = type(cmd).__name__
+      if name in self.__fg_set:
+        self._draw(l, pt0, c)
+        self.set_fg(cmd)
+        l = []
+        pt0 = 0
+        c = 0
+        continue
+      elif name == 'Clear':
+        # TODO: color
+        self.clear()
+        l = []
+        c = 0
+        pt0 = 0
+        continue
+
+      l.append(cmd.sample(imsize, verbose=sample_verbose))
+
+    self._draw(l, pt0, c)
 
   def imshow(self, pause=0.00001):
     imsize = self.imsize

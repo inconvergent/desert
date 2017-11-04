@@ -4,7 +4,7 @@
 
 from sys import argv
 
-from desert import Desert
+from erosion import Erosion
 from desert import box
 from desert import stroke
 from desert import circle
@@ -17,37 +17,27 @@ VERBOSE = 'vv'
 
 def main(arg):
 
-  imsize = 1000
-  d = Desert(imsize,
-             fg=rgb(1.0, 0.0, 0.0, 0.1),
-             bg=white(),
-             verbose=VERBOSE)
+  erosion = Erosion(verbose=VERBOSE)
 
-  d.draw([
+  erosion.send([
       box(0.3, (0.3, 0.3), 1.0),
       box(0.2, (0.7, 0.5), 0.1),
       box(0.2, (0.9, 0.9), 1.0),
       box((0.8, 0.2), (0.1, 0.9), 2.0)])
 
-  d.imshow()
+  erosion.send([rgb(0, 0.5, 0.5, 0.1)])
 
-  d.draw([rgb(0, 0.5, 0.5, 0.1)])
-
-  d.draw([
+  erosion.send([
       box(0.4, (0.3, 0.3), 1.0),
       box(0.3, (0.7, 0.5), 0.1),
       box(0.4, (0.9, 0.9), 1.0),
       box((0.9, 0.2), (0.1, 0.9), 2.0)])
 
-  d.imshow()
+  erosion.send([rgb(0, 0.0, 0.8, 0.1)])
 
-  d.draw([rgb(0, 0.0, 0.8, 0.1)])
+  erosion.send([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
 
-  d.draw([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
-
-  d.imshow()
-
-  d.draw([
+  erosion.send([
       stroke(((0.1, 0.1),
               (0.1, 0.1),
               (0.1, 0.9),
@@ -57,18 +47,11 @@ def main(arg):
               (0.9, 0.9),
               (0.2, 0.15)), 2)])
 
-  d.imshow(1)
+  erosion.send([rgb(0, 0.7, 0.2, 0.1)])
 
-  d.draw([rgb(0, 0.7, 0.2, 0.1)])
+  erosion.send([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
 
-  d.draw([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
-
-  try:
-    fn = arg[1] + '.png'
-  except Exception:
-    fn = './tmp.png'
-
-  d.imsave(fn)
+  erosion.save()
 
 
 if __name__ == '__main__':
