@@ -15,7 +15,7 @@ CUDA.
 
 ## Examples
 
-Tentative examples can be seen in `examples`.
+Tentative examples can be seen in `./examples`.
 
 
 ## Dependencies
@@ -41,10 +41,18 @@ or
 
 This will install python libraries `desert` and `erosion`. As well as a shell
 command called `erosion` that runs the drawing server. It will be available as
-`~/.local/bin/erosion`
+`~/.local/bin/erosion` if you installed with the `--user` flag.
 
 
-## TODO
+## On Use and Contributions
+
+This code is a tool that I have written for my own use. I release it publicly
+in case people find it useful. It is not however intended as a
+collaboration/Open Source project. As such I am unlikely to accept PRs, reply
+to issues, or take requests.
+
+
+## Todo
 
 Desert:
 
@@ -55,7 +63,8 @@ Desert:
 - [ ] Circle: varying rad
 - [ ] Spline
 - [x] Color
-- [ ] Color: hsv, cmyk
+- [ ] Color: hsv, cmyk?
+- [ ] Accept primitive color
 - [x] Json import/export of classes
 
 
