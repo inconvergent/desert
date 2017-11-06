@@ -3,29 +3,34 @@
 """erosion
 
 Usage:
-  erosion [--chan=<c>] [--resolution=<r>] [--v | --vv]
+  erosion [--chan=<c>] [--resolution=<r>] [--clear] [--v | --vv]
   erosion [--chan=<c>] --test
-  erosion [--chan=<c>] --clear
+  erosion [--chan=<c>] --save
+  erosion [--chan=<c>] --clear-exit
   erosion -h
 
 Options:
   -h                  Show this screen.
   --chan=<c>          Use this channel [default: erosion]
-  --v                 Verbose.
-  --vv                More verbose.
   --resolution=<r>    Canvas resolution. [default: 1000]
-  --test              Send a test message to the server then exit.
   --clear             Clear channel.
+  --test              Send a test message to the server, then exit.
+  --save              Save then exit.
+  --clear-exit        Clear channel, then exit.
+  --v                 Verbose.
+  --vv                Even more verbose.
   --version           Show version.
 
 Examples:
   erosion --test
-  CON='localhost:6379' erosion --chan erosion
+  CON='localhost:6379' erosion --chan erosion --clear --v
 
 """
 
 from os import getenv
-# from sys import stderr
+import sys
+import traceback
+
 
 from erosion.erosion import ErosionServer
 from erosion.erosion import Erosion
@@ -41,9 +46,8 @@ def run():
 
 
 def main(args):
-
-  con = getenv('CON', 'localhost:6379')
-  chan = args['--chan']
+  con = str(getenv('CON', 'localhost:6379'))
+  chan = str(args['--chan'])
   res = int(args['--resolution'])
 
   verbose = None
@@ -52,26 +56,24 @@ def main(args):
   elif args['--v']:
     verbose = True
 
-  erosion = ErosionServer(
-      con,
-      chan,
-      resolution=res,
-      verbose=verbose
-      )
+  erosion = ErosionServer(con,
+                          chan,
+                          resolution=res,
+                          verbose=verbose)
 
-  with erosion as er:
+  try:
+    with erosion as er:
 
-    if args['--test']:
-      erosion.test()
-      exit(1)
+      if args['--test']:
+        erosion.test()
+        exit(1)
 
-    if args['--clear']:
-      erosion.clear()
-      exit(1)
+      if args['--clear']:
+        erosion.clear_chan()
 
-    er.listen()
+      er.listen()
 
-  # except Exception as e:
-  #   print(e, file=stderr)
-  #   exit(1)
+  except Exception:
+    traceback.print_exc(file=sys.stdout)
+    exit(1)
 

@@ -17,6 +17,14 @@ from numpy import transpose
 from numpy import uint8 as npuint8
 
 
+
+def filename(arg):
+  try:
+    return arg[1] + '.png'
+  except Exception:
+    return './tmp.png'
+
+
 def load_kernel(fn, name, subs=None):
   if not subs:
     subs = {}
@@ -85,7 +93,7 @@ def is_verbose(f):
     res = f(*args, **kwargs)
     if 'verbose' in kwargs and kwargs['verbose'] is not None:
       self = args[0]
-      print('## {:s} time: {:0.4f}'.format(str(self), time()-st0))
+      print('.. {:s} time: {:0.4f}'.format(str(self), time()-st0))
     return res
   return inside
 

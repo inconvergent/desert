@@ -14,41 +14,44 @@ from desert.color import white
 
 from desert.rnd import in_circle
 
+from desert.helpers import filename
+
+
+VERBOSE = 'v'
+
 
 def main(arg):
+
+  fn = filename(arg)
+
   imsize = 1000
-  d = Desert(imsize,
-             fg=black(0.1),
-             bg=white())
+  with Desert(imsize, verbose=VERBOSE)\
+      .init(fg=black(0.1),
+            bg=white()) as desert:
 
-  num = 20
+    num = 20
 
-  xya = random((num, 2))
-  xyb = random((num, 2))
+    xya = random((num, 2))
+    xyb = random((num, 2))
 
-  stack = []
+    stack = []
 
-  drift = in_circle(1, 0, 0, 0.00001)
+    drift = in_circle(1, 0, 0, 0.00001)
 
-  for i in range(1, 10000):
-    xya += in_circle(num, 0, 0, 0.001) + drift
-    xyb += in_circle(num, 0, 0, 0.001) + drift
-    stack.append(stroke(xya, xyb, 0.01))
+    for i in range(1, 10000):
+      xya += in_circle(num, 0, 0, 0.001) + drift
+      xyb += in_circle(num, 0, 0, 0.001) + drift
+      stack.append(stroke(xya, xyb, 0.01))
 
-    if not i%2000:
-      print(i)
-      d.draw(stack)
-      d.imshow(0.1)
-      stack = []
+      if not i%2000:
+        print(i)
+        desert.draw(stack)
+        desert.show(0.1)
+        stack = []
 
-  d.imshow(1)
+    desert.show(1)
 
-  try:
-    fn = arg[1] + '.png'
-  except Exception:
-    fn = './tmp.png'
-
-  d.imsave(fn)
+    desert.save(fn)
 
 
 if __name__ == '__main__':

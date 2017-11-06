@@ -6,13 +6,13 @@ import pycuda.driver as cuda
 
 import pkg_resources
 
+from numpy import column_stack
 from numpy import float32 as npfloat
 from numpy import int32 as npint
+from numpy import pi as PI
 from numpy import prod
 from numpy import reshape
-from numpy import pi as PI
 from numpy import zeros
-from numpy import column_stack
 from numpy.random import random
 
 from .helpers import ind_filter
@@ -26,8 +26,6 @@ from .helpers import pfloat
 THREADS = 256
 TWOPI = 2.0*PI
 
-
-# http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#kernels
 
 class box():
   def __init__(self, s, mid, dens, threads=THREADS):
@@ -171,12 +169,12 @@ class circle():
     xy = random(shape).astype(npfloat)
 
     self._cuda_sample(npint(ng),
-                     cuda.InOut(xy),
-                     npfloat(self.rad),
-                     self._mid,
-                     npint(grains),
-                     block=(self.threads, 1, 1),
-                     grid=(blocks, 1))
+                      cuda.InOut(xy),
+                      npfloat(self.rad),
+                      self._mid,
+                      npint(grains),
+                      block=(self.threads, 1, 1),
+                      grid=(blocks, 1))
 
     return ind_filter(xy[:, :2])
 

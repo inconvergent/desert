@@ -30,13 +30,9 @@ The code also depends on:
 
 ## Install
 
-Use Setuptools to install.
+Use Setuptools to install:
 
     ./setup.py install --user
-
-or
-
-    ./setup.py develop --user
 
 This will install python libraries `desert` and `erosion`. As well as a shell
 command called `erosion` that runs the drawing server. It will be available as
@@ -56,11 +52,11 @@ to issues, or take requests.
 Desert:
 
 - [x] Box
-- [ ] Box: varying size
 - [x] Stroke
 - [x] Circle
-- [ ] Circle: varying rad
 - [ ] Spline
+- [ ] Circle: varying rad
+- [ ] Box: varying size
 - [x] Color
 - [ ] Color: hsv, cmyk?
 - [ ] Accept primitive color
@@ -70,10 +66,16 @@ Desert:
 Erosion:
 
 - [x] Basic example using Redis
+- [x] Init
 - [ ] Send clear/bg/fg
+- [ ] Move pfloat to erosion (from .json())
 
 
 ## Notes
 
 If cuda is not working try `sudo ldconfig`. and check $LD_LIBRARY_PATH
+
+https://documen.tician.de/pycuda/tutorial.html#executing-a-kernel
+
+http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#kernels
 
