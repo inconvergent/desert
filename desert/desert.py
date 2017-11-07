@@ -11,15 +11,19 @@ from PIL import Image
 from numpy import float32 as npfloat
 from numpy import int32 as npint
 from numpy import pi
-from numpy import row_stack
 from numpy import zeros
+from numpy import row_stack
+from numpy import column_stack
+from numpy import arange
+from numpy import repeat
+from numpy import concatenate
+from numpy import cumsum
 
 import pycuda.driver as cuda
 
 from .color import black
 from .color import white
 
-from .helpers import agg
 from .helpers import load_kernel
 from .helpers import unpack
 
@@ -41,6 +45,12 @@ class Desert():
     self.cuda_dot = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/dot.cu'),
         'dot',
+        subs={'_THREADS_': self.threads}
+        )
+
+    self.cuda_agg = load_kernel(
+         pkg_resources.resource_filename('desert', 'cuda/agg.cu'),
+        'agg',
         subs={'_THREADS_': self.threads}
         )
 
@@ -82,59 +92,73 @@ class Desert():
     cuda.memcpy_htod(self._img, self.img)
     self._updated = True
 
-  def _draw(self, l, t, c):
-    if not l:
+  def _draw(self, pts, colors, t0, count):
+    if not pts:
       return
     imsize = self.imsize
-    dots = agg(row_stack(l), imsize)
 
-    if self.verbose is not None:
-      print('-- sampled primitives: {:d}. time: {:0.4f}'.format(c, time()-t))
+    ind_count = zeros(self.imsize2, npint)
+    xy = row_stack(pts).astype(npfloat)
 
-    n, _ = dots.shape
-    blocks = int(n//self.threads + 1)
-
-    dt0 = time()
-    self.cuda_dot(npint(n),
-                  self._img,
-                  cuda.In(dots),
-                  cuda.In(self.fg.rgba),
+    aggn, _ = xy.shape
+    self.cuda_agg(npint(aggn),
+                  npint(imsize),
+                  cuda.In(xy),
+                  cuda.InOut(ind_count),
                   block=(self.threads, 1, 1),
-                  grid=(blocks, 1))
+                  grid=(int(aggn//self.threads) + 1, 1))
+
+    ind_count_reduced = column_stack((arange(len(ind_count)).astype(npint),
+                                      ind_count))
+
+    ns = ind_count.nonzero()[0]
+    ind_count_reduced = ind_count_reduced[ns, :]
+
+    cm = concatenate(([0], cumsum(ind_count_reduced[:, 1])[:-1])).astype(npint)
+    ind_count_reduced = column_stack((ind_count_reduced, cm))
+
+    block_count = [len(x) for x in pts]
+    ind_color = repeat(arange(len(block_count)), block_count)
 
     if self.verbose is not None:
-      print('-- drew dots: {:d}. time: {:0.4f}'.format(n, time()-dt0))
+      print('-- sampled primitives: {:d}. time: {:0.4f}'\
+          .format(count, time()-t0))
+
+    dotn, _ = ind_count_reduced.shape
+    dt0 = time()
+    self.cuda_dot(npint(dotn),
+                  self._img,
+                  cuda.In(ind_color),
+                  cuda.In(ind_count_reduced),
+                  cuda.In(row_stack(colors).astype(npfloat)),
+                  block=(self.threads, 1, 1),
+                  grid=(int(dotn//self.threads) + 1, 1))
+
+    if self.verbose is not None:
+      print('-- drew dots: {:d}. time: {:0.4f}'.format(dotn, time()-dt0))
     self._updated = True
 
   def draw(self, cmds):
     imsize = self.imsize
     # TODO: group based on estimated dots to draw?
 
-    l = []
-    c = 0
-    pt0 = time()
+    pts = []
+    colors = []
+
+    count = 0
+    t0 = time()
 
     sample_verbose = True if self.verbose == 'vv' else None
 
     for cmd in cmds:
-      c += 1
-      name = type(cmd).__name__
-      if name in self.__fg_set:
-        self._draw(l, pt0, c)
-        self.set_fg(cmd)
-        l = []
-        pt0 = 0
-        c = 0
-      elif name == 'Clear':
-        # TODO: color
-        self.clear()
-        l = []
-        c = 0
-        pt0 = 0
-      else:
-        l.append(cmd.sample(imsize, verbose=sample_verbose))
+      count += 1
+      xy = cmd.sample(imsize, verbose=sample_verbose)
+      cr = cmd.rgba
+      rgba = cr.rgba if cr is not None else self.fg.rgba
+      pts.append(xy)
+      colors.append(rgba)
 
-    self._draw(l, pt0, c)
+    self._draw(pts, colors, t0, count)
 
   def show(self, pause=0.00001):
     if not self.fig:

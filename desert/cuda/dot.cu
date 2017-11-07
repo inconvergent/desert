@@ -1,19 +1,21 @@
 #define THREADS _THREADS_
 
-__device__ inline void blend(float *img, const int kk, const int c,
-                             const float ia, const float *rgba) {
+__device__ inline void blend(float *img, const int r, const int kk,
+    const int *ind_color, const float *rgba) {
 
-  for (int i=0; i<c; i++){
-    img[kk] = img[kk]*ia + rgba[0];
-    img[kk+1] = img[kk+1]*ia + rgba[1];
-    img[kk+2] = img[kk+2]*ia + rgba[2];
-    img[kk+3] = img[kk+3]*ia + rgba[3];
-  }
+  const int ci = 4*ind_color[r];
+  const float ia = 1.0f-rgba[ci+3];
+
+  img[kk] = img[kk]*ia + rgba[ci];
+  img[kk+1] = img[kk+1]*ia + rgba[ci+1];
+  img[kk+2] = img[kk+2]*ia + rgba[ci+2];
+  img[kk+3] = img[kk+3]*ia + rgba[ci+3];
 }
 
 __global__ void dot(const int n,
                     float *img,
-                    const int *dots,
+                    const int *ind_color,
+                    const int *ind_count,
                     const float *rgba){
 
   const int i = blockIdx.x*THREADS + threadIdx.x;
@@ -22,13 +24,14 @@ __global__ void dot(const int n,
     return;
   }
 
-  const int ii = 2*i;
-  const int kk = 4*dots[ii];
-  const int c = dots[ii+1];
+  const int ii = 3*i;
+  const int kk = 4*ind_count[ii];
+  const int reps = ind_count[ii+1];
+  const int start = ind_count[ii+2];
 
-  const float a = rgba[3];
-  const float ia = 1.0-a;
-  blend(img, kk, c, ia, rgba);
+  for (int r=start; r<start+reps; r++){
+    blend(img, r, kk, ind_color, rgba);
+  }
 
 }
 

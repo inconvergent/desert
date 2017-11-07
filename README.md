@@ -61,6 +61,7 @@ Desert:
 - [ ] Color: hsv, cmyk?
 - [ ] Accept primitive color
 - [x] Json import/export of classes
+- [ ] aggregate primitives
 
 
 Erosion:

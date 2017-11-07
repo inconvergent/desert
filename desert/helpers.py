@@ -1,18 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from collections import Counter
 from functools import wraps
 from time import time
 
 from pycuda.compiler import SourceModule
-from numpy import column_stack
 from numpy import dstack
 from numpy import float32 as npfloat
 from numpy import int32 as npint
 from numpy import logical_and
 from numpy import reshape
-from numpy import row_stack
 from numpy import transpose
 from numpy import uint8 as npuint8
 
@@ -45,13 +42,6 @@ def ind_filter(xy):
             logical_and(xy[:, 1]>=0, xy[:,1]<1.0)), :]
 
 
-
-def agg(xy, imsize):
-  return row_stack(Counter(imsize * (xy[:, 1]*imsize).astype(npint) +
-                           (xy[:, 0]*imsize).astype(npint)).items())\
-           .astype(npint)
-
-
 def unpack(img, imsize, verbose=False):
   alpha = reshape(img[:, 3], (imsize, imsize))
 
@@ -73,10 +63,14 @@ def unpack(img, imsize, verbose=False):
 
 
 def pfloat(f):
-  return float('{:0.12f}'.format(f))
+  # return float('{:0.12f}'.format(f))
+  return float(f)
 
 
 def json_array(aa):
+  if aa is None:
+    return None
+
   l = []
   for a in aa:
     try:

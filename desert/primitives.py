@@ -21,14 +21,48 @@ from .helpers import json_array
 from .helpers import load_kernel
 from .helpers import pfloat
 
+from .color import Rgba
+
 
 
 THREADS = 256
 TWOPI = 2.0*PI
 
 
-class box():
+def _load_color(o, data):
+  c = data.get('rgba')
+  if c is not None:
+    return o.rgb(Rgba.from_json(c))
+  return o
+
+
+class basePrimitive():
+  def __init__(self, threads):
+    self.threads = threads
+    self.rgba = None
+    self.num = None
+
+  def rgb(self, c):
+    assert isinstance(c, Rgba)
+    self.rgba = c
+    return self
+
+  def est(self, imsize):
+    return self._get_n(imsize) * self.num
+
+  def _get_n(self, *arg, **args):
+    return NotImplemented
+
+  def sample(self, *arg, **args):
+    return NotImplemented
+
+  def json(self, *arg, **args):
+    return NotImplemented
+
+
+class box(basePrimitive):
   def __init__(self, s, mid, dens, threads=THREADS):
+    basePrimitive.__init__(self, threads)
 
     try:
       sx, sy = s
@@ -41,7 +75,6 @@ class box():
     self.dens = dens
 
     self.num = self.mid.shape[0]
-    self.threads = threads
 
     self._s = None
     self._mid = None
@@ -67,14 +100,11 @@ class box():
     if isinstance(j, str):
       j = loads(j)
     data = j['_data']
-    return box(data['s'], data['mid'], data['dens'])
+    return _load_color(box(data['s'], data['mid'], data['dens']), data)
 
   def _get_n(self, imsize):
     s = self.s
     return int(4*prod(s, axis=1)*self.dens*(imsize**2))
-
-  def est(self, imsize):
-    return self._get_n(imsize) * self.num
 
   def json(self):
     return {
@@ -83,6 +113,7 @@ class box():
             'mid': json_array(self.mid),
             's': json_array(self.s).pop(),
             'dens': pfloat(self.dens),
+            'rgba': self.rgba.json() if self.rgba is not None else None
             }
         }
 
@@ -90,6 +121,7 @@ class box():
   def sample(self, imsize, verbose=False):
     if self._cuda_sample is None:
       self.__cuda_init()
+
     grains = self._get_n(imsize)
     ng = self.num*grains
     blocks = int(ng//self.threads + 1)
@@ -107,8 +139,9 @@ class box():
     return ind_filter(xy)
 
 
-class circle():
+class circle(basePrimitive):
   def __init__(self, rad, mid, dens, threads=THREADS):
+    basePrimitive.__init__(self, threads)
     self.rad = rad
     self.mid = reshape(mid, (-1, 2)).astype(npfloat)
     self.dens = dens
@@ -136,9 +169,6 @@ class circle():
   def _get_n(self, imsize):
     return int(self.dens*PI*(self.rad*imsize)**2)
 
-  def est(self, imsize):
-    return self._get_n(imsize) * self.num
-
   def json(self):
     return {
         '_type': 'circle',
@@ -146,6 +176,7 @@ class circle():
             'rad': pfloat(self.rad),
             'mid': json_array(self.mid),
             'dens': pfloat(self.dens),
+            'rgba': self.rgba.json() if self.rgba is not None else None
             }
         }
 
@@ -154,7 +185,7 @@ class circle():
     if isinstance(j, str):
       j = loads(j)
     data = j['_data']
-    return circle(data['rad'], data['mid'], data['dens'])
+    return _load_color(circle(data['rad'], data['mid'], data['dens']), data)
 
   @is_verbose
   def sample(self, imsize, verbose=False):
@@ -179,8 +210,9 @@ class circle():
     return ind_filter(xy[:, :2])
 
 
-class stroke():
+class stroke(basePrimitive):
   def __init__(self, a, b, dens, threads=THREADS):
+    basePrimitive.__init__(self, threads)
 
     a = reshape(a, (-1, 2)).astype(npfloat)
     b = reshape(b, (-1, 2)).astype(npfloat)
@@ -195,6 +227,7 @@ class stroke():
     self.threads = threads
     self._ab = None
     self._cuda_sample = None
+
 
   def __cuda_init(self):
     self._ab = cuda.mem_alloc(self.ab.nbytes)
@@ -212,9 +245,6 @@ class stroke():
   def _get_n(self, imsize):
     return int(self.dens*imsize)
 
-  def est(self, imsize):
-    return self._get_n(imsize) * self.num
-
   def json(self):
     return {
         '_type': 'stroke',
@@ -222,6 +252,7 @@ class stroke():
             'a': json_array(self.ab[:, :2]),
             'b': json_array(self.ab[:, 2:]),
             'dens': pfloat(self.dens),
+            'rgba': self.rgba.json() if self.rgba is not None else None
             }
         }
 
@@ -230,7 +261,7 @@ class stroke():
     if isinstance(j, str):
       j = loads(j)
     data = j['_data']
-    return stroke(data['a'], data['b'], data['dens'])
+    return _load_color(stroke(data['a'], data['b'], data['dens']), data)
 
   @is_verbose
   def sample(self, imsize, verbose=False):

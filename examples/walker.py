@@ -4,6 +4,7 @@
 from sys import argv
 
 from numpy.random import random
+from numpy import row_stack
 
 from desert import Desert
 from desert import box
@@ -34,20 +35,24 @@ def main(arg):
     xya = random((num, 2))
     xyb = random((num, 2))
 
-    stack = []
+    stacka = []
+    stackb = []
 
     drift = in_circle(1, 0, 0, 0.00001)
 
-    for i in range(1, 10000):
+    for i in range(1, 100000):
       xya += in_circle(num, 0, 0, 0.001) + drift
       xyb += in_circle(num, 0, 0, 0.001) + drift
-      stack.append(stroke(xya, xyb, 0.01))
+      stacka.append(xya.copy())
+      stackb.append(xyb.copy())
 
-      if not i%2000:
+      if not i%10000:
         print(i)
-        desert.draw(stack)
-        desert.show(0.1)
-        stack = []
+        desert.draw([stroke(row_stack(stacka),
+                            row_stack(stackb), 0.01)])
+        desert.show(0.01)
+        stacka = []
+        stackb = []
 
     desert.show(1)
 
