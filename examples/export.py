@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-from sys import argv
-
 from desert.desert import Desert
 from desert.primitives import box
 from desert import stroke
@@ -13,15 +11,16 @@ from desert.color import rgb
 from desert.color import black
 from desert.color import Rgba
 
+from desert.helpers import pprint
 
-VERBOSE = 'vv'
 
-def main(arg):
+
+def main():
 
   b = box(0.3, (0.3, 0.3), 1.0).rgb(rgb(0.1, 0.3, 0.4, 0.77)).json()
-  print(b)
-  print(box.from_json(b).json())
-  print()
+  pprint(b)
+  pprint(box.from_json(b).json())
+  pprint()
 
   s = stroke(((0.1, 0.1),
               (0.1, 0.1),
@@ -32,21 +31,21 @@ def main(arg):
               (0.9, 0.9),
               (0.2, 0.15)), 2).rgb(black(0.4)).json()
 
-  print(s)
-  print(stroke.from_json(s).json())
-  print()
+  pprint(s)
+  pprint(stroke.from_json(s).json())
+  pprint()
 
   c = circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0).json()
-  print(c)
-  print(circle.from_json(c).json())
-  print()
+  pprint(c)
+  pprint(circle.from_json(c).json())
+  pprint()
 
   r = rgb(0.1, 0.4, 0.3, 0.99).json()
-  print(r)
-  print(Rgba.from_json(r).json())
-  print()
+  pprint(r)
+  pprint(Rgba.from_json(r).json())
+  pprint()
 
 
 if __name__ == '__main__':
-  main(argv)
+  main()
 

@@ -28,7 +28,7 @@ def main(arg):
         box(0.2, (0.9, 0.9), 1.0),
         box((0.8, 0.2), (0.1, 0.9), 2.0)])
 
-    erosion.send([rgb(0, 0.5, 0.5, 0.1)])
+    erosion.set_fg(rgb(0, 0.5, 0.5, 0.1))
 
     erosion.send([
         box(0.4, (0.3, 0.3), 1.0),
@@ -36,7 +36,7 @@ def main(arg):
         box(0.4, (0.9, 0.9), 1.0),
         box((0.9, 0.2), (0.1, 0.9), 2.0)])
 
-    erosion.send([rgb(0, 0.0, 0.8, 0.1)])
+    erosion.set_fg(rgb(0, 0.0, 0.8, 0.1))
 
     erosion.send([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
 
@@ -50,7 +50,7 @@ def main(arg):
                 (0.9, 0.9),
                 (0.2, 0.15)), 2)])
 
-    erosion.send([rgb(0, 0.7, 0.2, 0.1)])
+    erosion.set_fg(rgb(0, 0.7, 0.2, 0.1))
 
     erosion.send([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
 

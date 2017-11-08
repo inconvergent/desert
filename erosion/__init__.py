@@ -2,28 +2,44 @@
 
 """erosion
 
+Erosion is a tool for drawing Desert primitives from a Redis queue. This util
+can be used to start the Erosion worker, as well as to perform a few other
+tasks.
+
+You can read more about Desert at https://github.com/inconvergent/desert
+
+Erosion uses Redis. By default it expects Redis to be available at
+localhost:6379. You can override it by setting the "CON" environment variable.
+See examples below.
+
 Usage:
-  erosion [--chan=<c>] [--resolution=<r>] [--clear] [--v | --vv]
-  erosion [--chan=<c>] --test
-  erosion [--chan=<c>] --save
-  erosion [--chan=<c>] --clear-exit
+  erosion worker [--chan=<c>] [--resolution=<r>] [--path=<p>]
+                 [--clear] [--show] [--v | --vv]
+  erosion cli [--chan=<c>] --clear [--v | --vv]
+  erosion cli [--chan=<c>] --save [--v | --vv]
+  erosion cli [--chan=<c>] --test [--v | --vv]
   erosion -h
 
 Options:
   -h                  Show this screen.
-  --chan=<c>          Use this channel [default: erosion]
-  --resolution=<r>    Canvas resolution. [default: 1000]
-  --clear             Clear channel.
-  --test              Send a test message to the server, then exit.
-  --save              Save then exit.
-  --clear-exit        Clear channel, then exit.
   --v                 Verbose.
   --vv                Even more verbose.
   --version           Show version.
+  --chan=<c>          Use this channel [default: erosion]
+  --resolution=<r>    Canvas resolution. [default: 1000]
+  --path=<p>          Store results to this path [default: ./]
+  --clear             Send a clear cmd to the worker.
+  --show              Show the result while drawing.
+  --test              Send a test cmd to the worker.
+  --save              Send a save cmd to the worker.
 
 Examples:
-  erosion --test
-  CON='localhost:6379' erosion --chan erosion --clear --v
+  erosion cli --test
+  erosion cli --clear
+  CON='localhost:6379' erosion cli --save
+  erosion worker
+  erosion worker --path=/tmp/
+  CON='localhost:6379' erosion worker --chan erosion --clear --v
 
 """
 
@@ -32,11 +48,45 @@ import sys
 import traceback
 
 
-from erosion.erosion import ErosionServer
+from erosion.erosion import ErosionWorker
 from erosion.erosion import Erosion
 
 
-__ALL__ = ['ErosionServer', 'Erosion']
+__ALL__ = ['ErosionWorker', 'Erosion']
+
+def run_worker(args, con, chan, verbose):
+  res = int(args['--resolution'])
+  path = str(args['--path'])
+  show = bool(args['--show'])
+  erosion_worker = ErosionWorker(con, chan,
+                                 resolution=res,
+                                 show=show,
+                                 path=path,
+                                 verbose=verbose)
+
+  with erosion_worker as er:
+
+    if args['--clear']:
+      er.clear_chan()
+
+    er.listen()
+
+def run_cli(args, con, chan, verbose):
+
+  erosion = Erosion(con, chan, verbose=verbose)
+
+  with erosion as er:
+
+    if args['--test']:
+      er.test()
+
+    elif args['--clear']:
+      er.clear_chan()
+
+    elif args['--save']:
+      er.save()
+
+    exit(0)
 
 
 def run():
@@ -46,9 +96,9 @@ def run():
 
 
 def main(args):
+
   con = str(getenv('CON', 'localhost:6379'))
   chan = str(args['--chan'])
-  res = int(args['--resolution'])
 
   verbose = None
   if args['--vv']:
@@ -56,22 +106,11 @@ def main(args):
   elif args['--v']:
     verbose = True
 
-  erosion = ErosionServer(con,
-                          chan,
-                          resolution=res,
-                          verbose=verbose)
-
   try:
-    with erosion as er:
-
-      if args['--test']:
-        erosion.test()
-        exit(1)
-
-      if args['--clear']:
-        erosion.clear_chan()
-
-      er.listen()
+    if args['worker']:
+      run_worker(args, con, chan, verbose)
+    elif args['cli']:
+      run_cli(args, con, chan, verbose)
 
   except Exception:
     traceback.print_exc(file=sys.stdout)

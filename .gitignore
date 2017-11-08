@@ -3,5 +3,6 @@ examples/*.png
 *.swp
 *.pyc
 build
+dist
 *.egg-info/
 __pycache__

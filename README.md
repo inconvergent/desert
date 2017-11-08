@@ -5,38 +5,51 @@ Desert consists of two parts.
 The main library is simply called `Desert`. It is a CUDA accelerated library
 for sandpainting: http://inconvergent.net/grains-of-sand/
 
-The second part is called `Erosion`. A Redis-based client and server that can
+The second part is called `Erosion`. A Redis-based client and worker that can
 accept and draw `Desert` primitives and commands encoded as JSON objects. That
-means that you can use the `Erosion` server from any platform as long as you
+means that you can use the `Erosion` worker from any platform as long as you
 can construct JSON and it to a Redis queue. Eg. if you want to program in a
 different language, while still having a fast drawing engine that benefits from
 CUDA.
 
+
+## Install
+
+Use the install script:
+
+    ./install.sh
+
+This will use `setuptools` to install python libraries `desert` and `erosion`.
+As well as a shell util called `erosion`. It will be available as
+`~/.local/bin/erosion` if you installed with the `--user` flag.
+
+
 ## Examples
 
-Tentative examples can be seen in `./examples`.
+There are some examples in `./examples`.
+
+To use `Desert` via Python as a local library, see:
+
+    main.py
+
+To see how `Erosion` works, you can run this command (from `./examples`):
+
+    ./erosion-send.py && ~/.local/bin/erosion worker --vv
+
+This will first send some `Desert` primitives to the `Erosion` (Redis) queue.
+Then it will run the `Erosion` worker, which draws those primitives. Finally it
+will save the resulting image.
+
+To see how the `Erosion` terminal util works:
+
+    ~/.local/bin/erosion -h
 
 
 ## Dependencies
 
-The code also depends on:
-
-*    `Redis`
-*    `python-redis`
-*    `numpy`
-*    `pycuda`
-*    `matplotlib`
-
-
-## Install
-
-Use Setuptools to install:
-
-    ./setup.py install --user
-
-This will install python libraries `desert` and `erosion`. As well as a shell
-command called `erosion` that runs the drawing server. It will be available as
-`~/.local/bin/erosion` if you installed with the `--user` flag.
+The code depends on the CUDA toolkit (8.0), Redis (if you are using `Erosion`),
+and a few Python (3) packages. If you install using the install script, the
+python packages will be installed automatically.
 
 
 ## On Use and Contributions
@@ -58,8 +71,6 @@ Desert:
 - [ ] Circle: varying rad
 - [ ] Box: varying size
 - [x] Color
-- [ ] Color: hsv, cmyk?
-- [ ] Accept primitive color
 - [x] Json import/export of classes
 - [ ] aggregate primitives
 
@@ -68,7 +79,7 @@ Erosion:
 
 - [x] Basic example using Redis
 - [x] Init
-- [ ] Send clear/bg/fg
+- [x] Send color
 - [ ] Move pfloat to erosion (from .json())
 
 

@@ -21,6 +21,7 @@ from numpy import cumsum
 
 import pycuda.driver as cuda
 
+from .color import Rgba
 from .color import black
 from .color import white
 
@@ -79,9 +80,11 @@ class Desert():
     return self
 
   def set_fg(self, c):
+    assert isinstance(c, Rgba)
     self.fg = c
 
   def set_bg(self, c):
+    assert isinstance(c, Rgba)
     self.bg = c
 
   def clear(self, bg=None):

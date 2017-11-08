@@ -42,6 +42,11 @@ class basePrimitive():
     self.rgba = None
     self.num = None
 
+  def has_rgb(self):
+    if self.rgba is None:
+      return False
+    return True
+
   def rgb(self, c):
     assert isinstance(c, Rgba)
     self.rgba = c
@@ -93,7 +98,8 @@ class box(basePrimitive):
         )
 
   def __repr__(self):
-    return '<box n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
+    return '<box n: {:d} d: {:0.3f} {:s}>'\
+        .format(self.num, self.dens, '*' if self.rgba else '')
 
   @staticmethod
   def from_json(j):
@@ -164,7 +170,8 @@ class circle(basePrimitive):
         )
 
   def __repr__(self):
-    return '<circle n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
+    return '<circle n: {:d} d: {:0.3f} {:s}>'\
+        .format(self.num, self.dens, '*' if self.rgba else '')
 
   def _get_n(self, imsize):
     return int(self.dens*PI*(self.rad*imsize)**2)
@@ -240,7 +247,8 @@ class stroke(basePrimitive):
         )
 
   def __repr__(self):
-    return '<stroke n: {:d} d: {:0.3f}>'.format(self.num, self.dens)
+    return '<stroke n: {:d} d: {:0.3f} {:s}>'\
+        .format(self.num, self.dens, '*' if self.rgba else '')
 
   def _get_n(self, imsize):
     return int(self.dens*imsize)

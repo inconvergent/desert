@@ -9,12 +9,11 @@ dependencies = [
     'pycuda',
     'matplotlib',
     'redis',
-    'numpy'
+    'numpy',
+    'fn',
     ]
 
 packages = find_packages()
-
-print(packages)
 
 
 setup(
@@ -40,6 +39,7 @@ setup(
             'erosion=erosion:run'
             ]
         },
-    zip_safe=True
+    zip_safe=True,
+    dependency_links=['https://github.com/inconvergent/fn.git'],
     )
 

@@ -3,6 +3,7 @@
 
 from functools import wraps
 from time import time
+from json import dumps
 
 from pycuda.compiler import SourceModule
 from numpy import dstack
@@ -62,6 +63,14 @@ def unpack(img, imsize, verbose=False):
   return im
 
 
+def pprint(j=None):
+  if not j:
+    print()
+    return
+
+  print(dumps(j, indent=2, sort_keys=True))
+
+
 def pfloat(f):
   # return float('{:0.12f}'.format(f))
   return float(f)
@@ -90,6 +99,4 @@ def is_verbose(f):
       print('.. {:s} time: {:0.4f}'.format(str(self), time()-st0))
     return res
   return inside
-
-
 
