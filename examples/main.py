@@ -19,8 +19,6 @@ VERBOSE = 'vv'
 
 def main(arg):
 
-  fn = filename(arg)
-
   imsize = 1000
   with Desert(imsize, verbose=VERBOSE)\
       .init(fg=rgb(1.0, 0.0, 0.0, 0.1),
@@ -88,7 +86,7 @@ def main(arg):
 
     desert.show(10)
 
-    desert.save(fn)
+    desert.save(filename(arg))
 
 
 if __name__ == '__main__':

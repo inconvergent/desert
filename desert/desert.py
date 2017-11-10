@@ -9,11 +9,11 @@ import pkg_resources
 from PIL import Image
 
 from numpy import arange
+from numpy import argsort
 from numpy import column_stack
 from numpy import concatenate
 from numpy import cumsum
 from numpy import float32 as npfloat
-from numpy import argsort
 from numpy import int32 as npint
 from numpy import pi
 from numpy import repeat
@@ -34,7 +34,7 @@ from .helpers import unpack
 TWOPI = pi*2
 
 
-def build_ind_count(counts):
+def _build_ind_count(counts):
   ind_count_reduced = column_stack((arange(counts.shape[0]).astype(npint),
                                     counts))
 
@@ -57,7 +57,7 @@ class Desert():
     self._img = cuda.mem_alloc(self.img.nbytes)
     self.gsamples = gsamples
 
-    assert self.gsamples > 100000-1, 'you must set gsamples to at least 100000.'
+    assert self.gsamples >= 5000, 'you must set gsamples to at least 5000.'
 
     self.threads = 256
 
@@ -148,7 +148,7 @@ class Desert():
                   block=(self.threads, 1, 1),
                   grid=(int(aggn//self.threads) + 1, 1))
 
-    ind_count_map = build_ind_count(ind_count)
+    ind_count_map = _build_ind_count(ind_count)
     _ind_count_map = cuda.mem_alloc(ind_count_map.nbytes)
     cuda.memcpy_htod(_ind_count_map, ind_count_map)
 
@@ -212,6 +212,9 @@ class Desert():
       self._draw(self.pts, self.color_list, self.t0, self.count)
       self._gdraw_reset()
 
+      if self.fig is not None:
+        self.show()
+
   def gdraw(self, primitives):
     imsize = self.imsize
     sample_verbose = True if self.verbose == 'vv' else None
@@ -231,31 +234,33 @@ class Desert():
 
     self._gdraw()
 
-  def show(self, pause=0.00001):
+  def show(self, pause=0.00001, gamma=1):
     if not self.fig:
       print('-- warn: show is not enabled.')
       return
+
+    self.fig.clear()
 
     imsize = self.imsize
     t0 = time()
     if self._updated:
       cuda.memcpy_dtoh(self.img, self._img)
       self._updated = False
-    plt.imshow(Image.fromarray(unpack(self.img, imsize)))
+    plt.imshow(Image.fromarray(unpack(self.img, imsize, gamma=gamma)))
     if self.verbose == 'vv':
       print('-- show. time: {:0.4f}'.format(time()-t0))
 
     plt.pause(pause)
 
-  def save(self, fn):
+  def save(self, fn, gamma=1):
     self._gdraw(force=True)
     imsize = self.imsize
     print('-- wrote:', fn, (imsize, imsize))
     if self._updated:
       cuda.memcpy_dtoh(self.img, self._img)
       self._updated = False
-    Image.fromarray(unpack(self.img, imsize)).save(fn)
+    Image.fromarray(unpack(self.img, imsize, gamma=gamma)).save(fn)
 
-    if self.fig:
+    if self.fig is not None:
       self.show()
 

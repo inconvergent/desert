@@ -34,7 +34,7 @@ To use `Desert` via Python as a local library, see:
 
 To see how `Erosion` works, you can run this command (from `./examples`):
 
-    ./erosion-send.py && ~/.local/bin/erosion worker --vv
+    ./erosion-send.py && ~/.local/bin/erosion worker --path ./ --show --vv
 
 This will first send some `Desert` primitives to the `Erosion` (Redis) queue.
 Then it will run the `Erosion` worker, which draws those primitives. Finally it

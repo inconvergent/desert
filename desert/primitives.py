@@ -6,18 +6,18 @@ import pycuda.driver as cuda
 
 import pkg_resources
 
+from numpy import arange
 from numpy import column_stack
 from numpy import float32 as npfloat
+from numpy import hstack
 from numpy import int32 as npint
 from numpy import pi as PI
 from numpy import prod
-from numpy import reshape
-from numpy import zeros
 from numpy import repeat
-from numpy import tile
+from numpy import reshape
 from numpy import row_stack
-from numpy import hstack
-from numpy import arange
+from numpy import tile
+from numpy import zeros
 from numpy.random import random
 
 from .helpers import is_verbose
@@ -274,7 +274,6 @@ class stroke(basePrimitive):
     self.threads = threads
     self._ab = None
     self._cuda_sample = None
-
 
   def __cuda_init(self):
     self._ab = cuda.mem_alloc(self.ab.nbytes)

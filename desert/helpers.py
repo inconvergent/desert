@@ -6,9 +6,11 @@ from time import time
 from json import dumps
 
 from pycuda.compiler import SourceModule
+
 from numpy import dstack
 from numpy import float32 as npfloat
 from numpy import int32 as npint
+from numpy import power
 from numpy import reshape
 from numpy import transpose
 from numpy import uint8 as npuint8
@@ -36,22 +38,16 @@ def load_kernel(fn, name, subs=None):
   return mod.get_function(name)
 
 
-def unpack(img, imsize, verbose=False):
+def unpack(img, imsize, gamma=1):
   alpha = reshape(img[:, 3], (imsize, imsize))
 
   im = npuint8(
       transpose(
-          dstack((
+          power(dstack((
               reshape(img[:, 0], (imsize, imsize))/alpha,
               reshape(img[:, 1], (imsize, imsize))/alpha,
               reshape(img[:, 2], (imsize, imsize))/alpha,
-              ))*255, (0, 1, 2)))
-
-  if verbose:
-    print(im.shape)
-    print(im[:, :, 0])
-    print(im[:, :, 1])
-    print(im[:, :, 2])
+              )), gamma)*255, (0, 1, 2)))
 
   return im
 

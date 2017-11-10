@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-from sys import argv
-
 from erosion import Erosion
 from desert import box
 from desert import stroke
@@ -16,7 +14,7 @@ from desert.color import black
 
 VERBOSE = 'vv'
 
-def main(arg):
+def main():
 
   with Erosion(verbose=VERBOSE)\
       .init(fg=rgb(1.0, 0.0, 0.0, 0.1),
@@ -76,9 +74,10 @@ def main(arg):
               ])
         ])
 
+    # filename is set by worker
     erosion.save()
 
 
 if __name__ == '__main__':
-  main(argv)
+  main()
 
