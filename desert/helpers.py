@@ -9,7 +9,6 @@ from pycuda.compiler import SourceModule
 from numpy import dstack
 from numpy import float32 as npfloat
 from numpy import int32 as npint
-from numpy import logical_and
 from numpy import reshape
 from numpy import transpose
 from numpy import uint8 as npuint8
@@ -35,12 +34,6 @@ def load_kernel(fn, name, subs=None):
 
   mod = SourceModule(kernel)
   return mod.get_function(name)
-
-
-def ind_filter(xy):
-  return xy[logical_and(
-            logical_and(xy[:, 0]>=0, xy[:,0]<1.0),
-            logical_and(xy[:, 1]>=0, xy[:,1]<1.0)), :]
 
 
 def unpack(img, imsize, verbose=False):

@@ -2,8 +2,10 @@
 #define PI 3.141592654f
 
 __global__ void circle (const int n,
-                        float *xy,
-                        float rad,
+                        const int imsize,
+                        const float *rnd,
+                        int *ind,
+                        const float rad,
                         const float *mid,
                         const int grains
                         ){
@@ -17,8 +19,8 @@ __global__ void circle (const int n,
   const int ii = 3*i;
   const int k = 2*(int)floor((float)i/(float)grains);
 
-  const float t = 2 * PI * xy[ii];
-  const float u = xy[ii+1] + xy[ii+2];
+  const float t = 2 * PI * rnd[ii];
+  const float u = rnd[ii+1] + rnd[ii+2];
 
   float r;
   if (u>1.0f){
@@ -27,7 +29,15 @@ __global__ void circle (const int n,
     r = rad*u;
   }
 
-  xy[ii] = mid[k] + r * cos(t);
-  xy[ii+1] = mid[k+1] + r *sin(t);
+  const float x = mid[k] + r * cos(t);
+  const float y = mid[k+1] + r *sin(t);
+
+  if (x < 0.0f || x >= 1.0f || y < 0.0f || y >= 1.0f){
+    ind[i] = -1;
+    return;
+  }
+
+  ind[i] = (int)(x*(float)imsize) + (int)(y*(float)imsize) * imsize;
+
 }
 

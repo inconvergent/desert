@@ -13,9 +13,13 @@ from numpy import pi as PI
 from numpy import prod
 from numpy import reshape
 from numpy import zeros
+from numpy import repeat
+from numpy import tile
+from numpy import row_stack
+from numpy import hstack
+from numpy import arange
 from numpy.random import random
 
-from .helpers import ind_filter
 from .helpers import is_verbose
 from .helpers import json_array
 from .helpers import load_kernel
@@ -30,10 +34,18 @@ TWOPI = 2.0*PI
 
 
 def _load_color(o, data):
-  c = data.get('rgba')
-  if c is not None:
-    return o.rgb(Rgba.from_json(c))
+  cc = data.get('rgba')
+  if cc is not None:
+    if isinstance(cc, list):
+      return o.rgb([Rgba.from_json(c) for c in cc])
+    return o.rgb(Rgba.from_json(cc))
   return o
+
+
+def _export_color(cc):
+  if isinstance(cc, list):
+    return [c.json() for c in cc]
+  return cc.json()
 
 
 class basePrimitive():
@@ -47,9 +59,33 @@ class basePrimitive():
       return False
     return True
 
-  def rgb(self, c):
-    assert isinstance(c, Rgba)
-    self.rgba = c
+  def color_sample(self, imsize, cc):
+    num = self.num
+    grains = self._get_n(imsize)
+    ng = grains * num
+
+    cc = self.rgba if self.rgba is not None else cc
+
+    if isinstance(cc, Rgba):
+      res = reshape(tile(cc.rgba, ng), (ng, 4))
+    else:
+      res = reshape([tile(c.rgba, grains) for c in cc],
+          (ng, 4))
+
+    return res.astype(npfloat)
+
+  def rgb(self, cc):
+    if self.num == 1:
+      assert isinstance(cc, Rgba)
+
+    elif self.num > 1:
+
+      if not isinstance(cc, Rgba):
+        assert len(cc) == self.num
+        for c in cc:
+          assert isinstance(c, Rgba)
+
+    self.rgba = cc
     return self
 
   def est(self, imsize):
@@ -119,7 +155,7 @@ class box(basePrimitive):
             'mid': json_array(self.mid),
             's': json_array(self.s).pop(),
             'dens': pfloat(self.dens),
-            'rgba': self.rgba.json() if self.rgba is not None else None
+            'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
 
@@ -133,16 +169,18 @@ class box(basePrimitive):
     blocks = int(ng//self.threads + 1)
     shape = (ng, 2)
 
-    xy = random(shape).astype(npfloat)
+    ind = zeros(ng, npint)
 
     self._cuda_sample(npint(ng),
-                      cuda.InOut(xy),
+                      npint(imsize),
+                      cuda.In(random(shape).astype(npfloat)),
+                      cuda.Out(ind),
                       self._s, self._mid,
                       npint(grains),
                       block=(self.threads, 1, 1),
                       grid=(blocks, 1))
 
-    return ind_filter(xy)
+    return ind
 
 
 class circle(basePrimitive):
@@ -183,7 +221,7 @@ class circle(basePrimitive):
             'rad': pfloat(self.rad),
             'mid': json_array(self.mid),
             'dens': pfloat(self.dens),
-            'rgba': self.rgba.json() if self.rgba is not None else None
+            'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
 
@@ -204,17 +242,19 @@ class circle(basePrimitive):
     blocks = int(ng//self.threads + 1)
     shape = (ng, 3)
 
-    xy = random(shape).astype(npfloat)
+    ind = zeros(ng, npint)
 
     self._cuda_sample(npint(ng),
-                      cuda.InOut(xy),
+                      npint(imsize),
+                      cuda.In(random(shape).astype(npfloat)),
+                      cuda.Out(ind),
                       npfloat(self.rad),
                       self._mid,
                       npint(grains),
                       block=(self.threads, 1, 1),
                       grid=(blocks, 1))
 
-    return ind_filter(xy[:, :2])
+    return ind
 
 
 class stroke(basePrimitive):
@@ -260,7 +300,7 @@ class stroke(basePrimitive):
             'a': json_array(self.ab[:, :2]),
             'b': json_array(self.ab[:, 2:]),
             'dens': pfloat(self.dens),
-            'rgba': self.rgba.json() if self.rgba is not None else None
+            'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
 
@@ -279,17 +319,17 @@ class stroke(basePrimitive):
     grains = self._get_n(imsize)
     ng = self.num*grains
     blocks = int(ng//self.threads + 1)
-    shape = (ng, 2)
 
-    xy = zeros(shape).astype(npfloat)
-    xy[:, 0] = random(ng).astype(npfloat)
+    ind = zeros(ng, npint)
 
     self._cuda_sample(npint(ng),
+                      npint(imsize),
                       self._ab,
-                      cuda.InOut(xy),
+                      cuda.In(random(ng).astype(npfloat)),
+                      cuda.Out(ind),
                       npint(grains),
                       block=(self.threads, 1, 1),
                       grid=(blocks, 1))
 
-    return ind_filter(xy)
+    return ind
 

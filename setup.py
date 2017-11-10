@@ -31,6 +31,7 @@ setup(
             'cuda/box.cu',
             'cuda/circle.cu',
             'cuda/dot.cu',
+            'cuda/agg.cu',
             'cuda/stroke.cu',
             ],
     },
@@ -40,6 +41,6 @@ setup(
             ]
         },
     zip_safe=True,
-    dependency_links=['https://github.com/inconvergent/fn.git'],
+    dependency_links=['git+https://github.com/inconvergent/fn.git@master#egg=fn-0'],
     )
 

@@ -7,5 +7,5 @@ from .primitives import box
 from .primitives import stroke
 from .primitives import circle
 
-from .typeRouter import type_router
+from .type_router import type_router
 

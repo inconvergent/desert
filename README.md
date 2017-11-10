@@ -8,9 +8,9 @@ for sandpainting: http://inconvergent.net/grains-of-sand/
 The second part is called `Erosion`. A Redis-based client and worker that can
 accept and draw `Desert` primitives and commands encoded as JSON objects. That
 means that you can use the `Erosion` worker from any platform as long as you
-can construct JSON and it to a Redis queue. Eg. if you want to program in a
-different language, while still having a fast drawing engine that benefits from
-CUDA.
+can construct JSON and send it to a Redis queue. Eg. if you want to program in
+a different language, while still having a fast drawing engine that benefits
+from CUDA.
 
 
 ## Install
@@ -20,8 +20,8 @@ Use the install script:
     ./install.sh
 
 This will use `setuptools` to install python libraries `desert` and `erosion`.
-As well as a shell util called `erosion`. It will be available as
-`~/.local/bin/erosion` if you installed with the `--user` flag.
+As well as a terminal util called `erosion`. It will be available as
+`~/.local/bin/erosion` if you installed with the `install.sh` script.
 
 
 ## Examples
@@ -47,9 +47,12 @@ To see how the `Erosion` terminal util works:
 
 ## Dependencies
 
-The code depends on the CUDA toolkit (8.0), Redis (if you are using `Erosion`),
-and a few Python (3) packages. If you install using the install script, the
-python packages will be installed automatically.
+This code is developed on Ubuntu 16.04 LTS. I imagine you will be able to get
+it running on Mac as well.
+
+The library depends on the CUDA toolkit (8.0), Redis (if you are using
+`Erosion`), and a few Python (3) packages. If you install using the install
+script, the python packages will be installed automatically.
 
 
 ## On Use and Contributions
@@ -64,22 +67,14 @@ to issues, or take requests.
 
 Desert:
 
-- [x] Box
-- [x] Stroke
-- [x] Circle
 - [ ] Spline
+- [ ] aggregate primitives
 - [ ] Circle: varying rad
 - [ ] Box: varying size
-- [x] Color
-- [x] Json import/export of classes
-- [ ] aggregate primitives
 
 
 Erosion:
 
-- [x] Basic example using Redis
-- [x] Init
-- [x] Send color
 - [ ] Move pfloat to erosion (from .json())
 
 

@@ -40,6 +40,14 @@ def main():
   pprint(circle.from_json(c).json())
   pprint()
 
+  c = circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)\
+      .rgb([
+          black(0.3),
+          black(0.1)]).json()
+  pprint(c)
+  pprint(circle.from_json(c).json())
+  pprint()
+
   r = rgb(0.1, 0.4, 0.3, 0.99).json()
   pprint(r)
   pprint(Rgba.from_json(r).json())

@@ -99,8 +99,8 @@ class ErosionWorker():
           continue
 
         try:
-          cmd = type_router(j)
-          self.desert.draw([cmd])
+          p = type_router(j)
+          self.desert.draw([p])
           if self.show:
             # TODO: do this periodically
             self.desert.show()
