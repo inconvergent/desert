@@ -12,6 +12,9 @@ can construct JSON and send it to a Redis queue. Eg. if you want to program in
 a different language, while still having a fast drawing engine that benefits
 from CUDA.
 
+I've written a little more about the library here:
+http://inconvergent.net/lost-in-the-desert/
+
 ![img](img/img.png?raw=true "img")
 
 
