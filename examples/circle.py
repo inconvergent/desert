@@ -5,7 +5,9 @@
 from sys import argv
 
 from desert.helpers import filename
+from numpy import array
 from numpy import cos
+from numpy import pi
 from numpy import sin
 from numpy import zeros
 from numpy.random import random
@@ -20,6 +22,8 @@ from desert.color import black
 
 from time import time
 
+TWOPI = 2.0*pi
+
 
 VERBOSE = 'v'
 
@@ -29,7 +33,8 @@ def main(arg):
       .init(fg=black(0.001),
             bg=white()) as c:
 
-    a = random(2)
+    density = 0.02
+    a = random(2)*TWOPI
     acc = zeros(2)
     noise = 0.00000001
     rad = 0.45
@@ -39,18 +44,15 @@ def main(arg):
 
     for i in range(2000000):
       a += acc
-      acc += (1.0-2*random(2))*noise
+      acc += (1-2*random(2))*noise
 
-      x1 = 0.5 + cos(a[0])*rad
-      y1 = 0.5 + sin(a[0])*rad
-      x2 = 0.5 + cos(a[1])*rad
-      y2 = 0.5 + sin(a[1])*rad
-
-      resa.append((x1, y1))
-      resb.append((x2, y2))
+      resa.append((cos(a[0]), sin(a[0])))
+      resb.append((cos(a[1]), sin(a[1])))
 
       if not i%50000:
-        c.gdraw([stroke(resa, resb, 0.02)])
+        c.draw([stroke(0.5 + array(resa)*rad,
+                        0.5 + array(resb)*rad,
+                        density)])
         resa = []
         resb = []
         c.show()
