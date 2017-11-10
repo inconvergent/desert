@@ -48,15 +48,18 @@ def build_ind_count(counts):
 
 class Desert():
 
-  def __init__(self, imsize, show=True, verbose=False):
+  def __init__(self, imsize, show=True,
+               gsamples=1000000, verbose=False):
     self.imsize = imsize
     self.imsize2 = imsize*imsize
     self.img = zeros((self.imsize2, 4), npfloat)
 
     self._img = cuda.mem_alloc(self.img.nbytes)
+    self.gsamples = gsamples
+
+    assert self.gsamples > 100000-1, 'you must set gsamples to at least 100000.'
 
     self.threads = 256
-
 
     self.cuda_agg = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/agg.cu'),
@@ -88,11 +91,20 @@ class Desert():
     self.fg = None
     self.bg = None
 
+    self._gdraw_reset()
+
   def __enter__(self):
     return self
 
   def __exit__(self, _type, val, tb):
     return
+
+  def _gdraw_reset(self):
+    self.est = 0
+    self.pts = []
+    self.color_list = []
+    self.t0 = time()
+    self.count = 0
 
   def init(self, fg=black(0.01), bg=white()):
     self.fg = fg
@@ -172,18 +184,16 @@ class Desert():
 
   def draw(self, primitives):
     imsize = self.imsize
-    # TODO: group based on estimated dots to draw?
 
     pts = []
     color_list = []
-
     count = 0
     t0 = time()
 
     sample_verbose = True if self.verbose == 'vv' else None
 
     for p in primitives:
-      count += 1
+      self.count += p.num
       inds = p.sample(imsize, verbose=sample_verbose)
       colors = p.color_sample(imsize, self.fg)
       mask = inds > 0
@@ -195,6 +205,31 @@ class Desert():
         color_list.append(colors)
 
     self._draw(pts, color_list, t0, count)
+
+  def _gdraw(self, force=False):
+    if force or self.est > self.gsamples:
+      print('.. hit gsamples limit: drawing')
+      self._draw(self.pts, self.color_list, self.t0, self.count)
+      self._gdraw_reset()
+
+  def gdraw(self, primitives):
+    imsize = self.imsize
+    sample_verbose = True if self.verbose == 'vv' else None
+
+    for p in primitives:
+      self.count += p.num
+      inds = p.sample(imsize, verbose=sample_verbose)
+      colors = p.color_sample(imsize, self.fg)
+      self.est += p.est(imsize)
+      mask = inds > 0
+      inds = inds[mask]
+      colors = colors[mask, :]
+
+      if inds.shape[0] > 0:
+        self.pts.append(inds)
+        self.color_list.append(colors)
+
+    self._gdraw()
 
   def show(self, pause=0.00001):
     if not self.fig:
@@ -213,10 +248,14 @@ class Desert():
     plt.pause(pause)
 
   def save(self, fn):
+    self._gdraw(force=True)
     imsize = self.imsize
     print('-- wrote:', fn, (imsize, imsize))
     if self._updated:
       cuda.memcpy_dtoh(self.img, self._img)
       self._updated = False
     Image.fromarray(unpack(self.img, imsize)).save(fn)
+
+    if self.fig:
+      self.show()
 

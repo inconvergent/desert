@@ -30,6 +30,7 @@ class ErosionWorker():
       con='localhost:6379',
       chan='erosion',
       resolution=1000,
+      gsamples=100000,
       show=False,
       path='./',
       verbose=False):
@@ -41,6 +42,7 @@ class ErosionWorker():
     self.chan = str(chan)
 
     self.imsize = int(resolution)
+    self.gsamples = int(gsamples)
     self.verbose = verbose
     self.show = show
     self.red = None
@@ -52,8 +54,14 @@ class ErosionWorker():
     print('>> running erosion worker.')
     print('>> listening at: {:s}/{:s}.'.format(self.con, self.chan))
     print('>> resolution: ({:d} {:d}).'.format(self.imsize, self.imsize))
+    print('>> gsamples: ', self.gsamples)
+    print('>> show: ', self.show)
+
     self.red = Redis(self.host, self.port)
-    self.desert = Desert(self.imsize, show=self.show, verbose=self.verbose).init()
+    self.desert = Desert(self.imsize,
+                         show=self.show,
+                         gsamples=self.gsamples,
+                         verbose=self.verbose).init()
     return self
 
   def __exit__(self, _type, val, tb):
@@ -100,7 +108,7 @@ class ErosionWorker():
 
         try:
           p = type_router(j)
-          self.desert.draw([p])
+          self.desert.gdraw([p])
           if self.show:
             # TODO: do this periodically
             self.desert.show()

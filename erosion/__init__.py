@@ -13,8 +13,8 @@ localhost:6379. You can override it by setting the "CON" environment variable.
 See examples below.
 
 Usage:
-  erosion worker [--chan=<c>] [--resolution=<r>] [--path=<p>]
-                 [--clear] [--show] [--v | --vv]
+  erosion worker [--chan=<c>] [--resolution=<r>] [--gsamples=<s>]
+                 [--path=<p>] [--clear] [--show] [--v | --vv]
   erosion cli [--chan=<c>] --clear [--v | --vv]
   erosion cli [--chan=<c>] --save [--v | --vv]
   erosion cli [--chan=<c>] --test [--v | --vv]
@@ -27,6 +27,7 @@ Options:
   --version           Show version.
   --chan=<c>          Use this channel [default: erosion]
   --resolution=<r>    Canvas resolution. [default: 1000]
+  --gsamples=<s>      Group together samples before drawing. [default: 100000]
   --path=<p>          Store results to this path [default: ./]
   --clear             Send a clear cmd to the worker.
   --show              Show the result while drawing.
@@ -58,8 +59,10 @@ def run_worker(args, con, chan, verbose):
   res = int(args['--resolution'])
   path = str(args['--path'])
   show = bool(args['--show'])
+  gsamples = int(args['--gsamples'])
   erosion_worker = ErosionWorker(con, chan,
                                  resolution=res,
+                                 gsamples=gsamples,
                                  show=show,
                                  path=path,
                                  verbose=verbose)
@@ -91,7 +94,7 @@ def run_cli(args, con, chan, verbose):
 
 def run():
   from docopt import docopt
-  args = docopt(__doc__, version='erosion 0.0.1')
+  args = docopt(__doc__, version='erosion 0.0.5')
   main(args)
 
 
