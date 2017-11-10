@@ -36,23 +36,23 @@ def main(arg):
     density = 0.02
     a = random(2)*TWOPI
     acc = zeros(2)
-    noise = 0.00000001
+    noise = 0.000000005
     rad = 0.45
 
     resa = []
     resb = []
 
-    for i in range(2000000):
+    for i in range(4000000):
       a += acc
       acc += (1-2*random(2))*noise
 
       resa.append((cos(a[0]), sin(a[0])))
       resb.append((cos(a[1]), sin(a[1])))
 
-      if not i%50000:
+      if not i%100000:
         c.draw([stroke(0.5 + array(resa)*rad,
-                        0.5 + array(resb)*rad,
-                        density)])
+                       0.5 + array(resb)*rad,
+                       density)])
         resa = []
         resb = []
         c.show()
