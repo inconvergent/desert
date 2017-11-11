@@ -94,7 +94,7 @@ def run_cli(args, con, chan, verbose):
 
 def run():
   from docopt import docopt
-  args = docopt(__doc__, version='erosion 0.0.5')
+  args = docopt(__doc__, version='erosion 0.0.6')
   main(args)
 
 

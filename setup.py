@@ -18,7 +18,7 @@ packages = find_packages()
 
 setup(
     name='desert',
-    version='0.0.5',
+    version='0.0.6',
     description='desert',
     url='https://github.com/inconvergent/desert',
     license='MIT',

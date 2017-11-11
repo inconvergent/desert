@@ -59,7 +59,7 @@ class Desert():
 
     assert self.gsamples >= 5000, 'you must set gsamples to at least 5000.'
 
-    self.threads = 256
+    self.threads = 512
 
     self.cuda_agg = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/agg.cu'),
@@ -86,7 +86,6 @@ class Desert():
 
     self._updated = False
     self.verbose = verbose
-    self.__fg_set = set(['Rgba', 'Fg'])
 
     self.fg = None
     self.bg = None
@@ -101,10 +100,11 @@ class Desert():
 
   def _gdraw_reset(self):
     self.est = 0
-    self.pts = []
-    self.color_list = []
-    self.t0 = time()
+    self.tdraw = 0
     self.count = 0
+    self.color_list = []
+    self.pts = []
+    self._gupdated = True
 
   def init(self, fg=black(0.01), bg=white()):
     self.fg = fg
@@ -115,10 +115,12 @@ class Desert():
   def set_fg(self, c):
     assert isinstance(c, Rgba)
     self.fg = c
+    return self
 
   def set_bg(self, c):
     assert isinstance(c, Rgba)
     self.bg = c
+    return self
 
   def clear(self, bg=None):
     if bg:
@@ -127,11 +129,14 @@ class Desert():
       self.img[:, :] = self.bg.rgba
     cuda.memcpy_htod(self._img, self.img)
     self._updated = True
+    return self
 
-  def _draw(self, pts, colors, t0, count):
+  def _draw(self, pts, colors):
     if not pts:
       return
     imsize = self.imsize
+
+    dt0 = time()
 
     ind_count = zeros(self.imsize2, npint)
     colors = row_stack(colors).astype(npfloat)
@@ -164,12 +169,7 @@ class Desert():
                       block=(self.threads, 1, 1),
                       grid=(int(aggn//self.threads) + 1, 1))
 
-    if self.verbose is not None:
-      print('-- sampled primitives: {:d}. time: {:0.4f}'\
-          .format(count, time()-t0))
-
     dotn, _ = ind_count_map.shape
-    dt0 = time()
     self.cuda_dot(npint(dotn),
                   self._img,
                   _ind_count_map,
@@ -188,14 +188,16 @@ class Desert():
     pts = []
     color_list = []
     count = 0
+    est = 0
     t0 = time()
 
     sample_verbose = True if self.verbose == 'vv' else None
 
     for p in primitives:
-      self.count += p.num
+      count += p.num
       inds = p.sample(imsize, verbose=sample_verbose)
       colors = p.color_sample(imsize, self.fg)
+      est += p.est(imsize)
       mask = inds > 0
       inds = inds[mask]
       colors = colors[mask, :]
@@ -204,20 +206,37 @@ class Desert():
         pts.append(inds)
         color_list.append(colors)
 
-    self._draw(pts, color_list, t0, count)
+    if self.verbose is not None:
+      print('-- sampled primitives: {:d} ({:d}). time: {:0.4f}'\
+          .format(count, est, time()-t0))
+
+    self._draw(pts, color_list)
+    return self
 
   def _gdraw(self, force=False):
     if force or self.est > self.gsamples:
-      print('.. hit gsamples limit: drawing')
-      self._draw(self.pts, self.color_list, self.t0, self.count)
+      if force:
+        print('.. gsamples force: drawing.')
+      else:
+        print('.. hit gsamples limit: drawing.')
+      self._draw(self.pts, self.color_list)
+
+      if self.verbose is not None:
+        print('-- sampled primitives: {:d} ({:d}). time: {:0.4f}'\
+            .format(self.count, self.est, self.tdraw))
       self._gdraw_reset()
+    else:
+      self._gupdated = False
 
-      if self.fig is not None:
-        self.show()
+  def gforce(self):
+    self._gdraw(force=True)
+    return self
 
-  def gdraw(self, primitives):
+  def gdraw(self, primitives, force=False):
     imsize = self.imsize
     sample_verbose = True if self.verbose == 'vv' else None
+
+    t0 = time()
 
     for p in primitives:
       self.count += p.num
@@ -232,9 +251,13 @@ class Desert():
         self.pts.append(inds)
         self.color_list.append(colors)
 
-    self._gdraw()
+    self.tdraw += time()-t0
 
-  def show(self, pause=0.00001, gamma=1):
+    self._gdraw(force=force)
+
+    return self
+
+  def show(self, pause=0.1, gamma=1):
     if not self.fig:
       print('-- warn: show is not enabled.')
       return
@@ -251,6 +274,7 @@ class Desert():
       print('-- show. time: {:0.4f}'.format(time()-t0))
 
     plt.pause(pause)
+    return self
 
   def save(self, fn, gamma=1):
     self._gdraw(force=True)
@@ -261,6 +285,5 @@ class Desert():
       self._updated = False
     Image.fromarray(unpack(self.img, imsize, gamma=gamma)).save(fn)
 
-    if self.fig is not None:
-      self.show()
+    return self
 

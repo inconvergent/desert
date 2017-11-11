@@ -45,16 +45,12 @@ def main(arg):
       stackb.append(xyb.copy())
 
       if not i%10000:
-        print(i)
         desert.draw([stroke(row_stack(stacka),
-                            row_stack(stackb), 0.01)])
-        desert.show(0.01)
+                            row_stack(stackb), 0.01)]).show(0.01)
         stacka = []
         stackb = []
 
-    desert.show(1)
-
-    desert.save(filename(arg))
+    desert.show(1).save(filename(arg))
 
 
 if __name__ == '__main__':

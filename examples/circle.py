@@ -52,10 +52,9 @@ def main(arg):
       if not i%100000:
         c.draw([stroke(0.5 + array(resa)*rad,
                        0.5 + array(resb)*rad,
-                       density)])
+                       density)]).show()
         resa = []
         resb = []
-        c.show()
 
     c.save(filename(arg), gamma=1.5)
 

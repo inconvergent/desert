@@ -72,6 +72,8 @@ class ErosionWorker():
 
   def save(self):
     self.desert.save(self.fn.name())
+    if self.show and self.desert._gupdated:
+      self.desert.show()
 
   def clear_chan(self):
     l = self.red.llen(self.chan)
@@ -109,8 +111,7 @@ class ErosionWorker():
         try:
           p = type_router(j)
           self.desert.gdraw([p])
-          if self.show:
-            # TODO: do this periodically
+          if self.show and self.desert._gupdated:
             self.desert.show()
         except Exception as e:
           print('## err: erosion:\n{:s}'.format(str(j)))
@@ -153,6 +154,7 @@ class Erosion():
     l = self.red.llen(self.chan)
     print('>> cleared: {:d}'.format(l))
     self.red.delete(self.chan)
+    return self
 
   def init(self, fg, bg):
     self.fg = fg
@@ -169,6 +171,7 @@ class Erosion():
   def save(self):
     print('>> sending save cmd.')
     self._send({'_type': '_save'})
+    return self
 
   def test(self):
     print('** sent test.')
@@ -176,18 +179,22 @@ class Erosion():
         '_type': '_test',
         '_data': {'time': strftime("%Y-%m-%dT%H:%M:%S", gmtime())}
         }))
+    return self
 
   def set_fg(self, c):
     assert isinstance(c, Rgba)
     self.fg = c
+    return self
 
   def set_bg(self, c):
     assert isinstance(c, Rgba)
     self.bg = c
+    return self
 
   def send(self, cmds):
     for cmd in cmds:
       if not cmd.has_rgb():
         cmd.rgb(self.fg)
       self._send(cmd.json())
+    return self
 

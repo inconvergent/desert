@@ -20,7 +20,9 @@ def main():
       .init(fg=rgb(1.0, 0.0, 0.0, 0.1),
             bg=white()) as erosion:
 
-    erosion.send([
+    send = erosion.send
+
+    send([
         box(0.3, (0.3, 0.3), 1.0),
         box(0.2, (0.7, 0.5), 0.1),
         box(0.2, (0.9, 0.9), 1.0),
@@ -28,7 +30,7 @@ def main():
 
     erosion.set_fg(rgb(0, 0.5, 0.5, 0.1))
 
-    erosion.send([
+    send([
         box(0.4, (0.3, 0.3), 1.0),
         box(0.3, (0.7, 0.5), 0.1),
         box(0.4, (0.9, 0.9), 1.0),
@@ -36,9 +38,9 @@ def main():
 
     erosion.set_fg(rgb(0, 0.0, 0.8, 0.1))
 
-    erosion.send([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
+    send([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
 
-    erosion.send([
+    send([
         stroke(((0.1, 0.1),
                 (0.1, 0.1),
                 (0.1, 0.9),
@@ -50,9 +52,9 @@ def main():
 
     erosion.set_fg(rgb(0, 0.7, 0.2, 0.1))
 
-    erosion.send([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
+    send([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
 
-    erosion.send([
+    send([
         circle(0.05, ((0.9, 0.1),
                       (0.9, 0.15),
                       (0.9, 0.2),
@@ -72,10 +74,7 @@ def main():
               rgb(0.5, 0.2, 0.9, 0.3),
               rgb(0.9, 0.5, 0.2, 0.3),
               ])
-        ])
-
-    # filename is set by worker
-    erosion.save()
+        ]).save()
 
 
 if __name__ == '__main__':

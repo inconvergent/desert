@@ -24,7 +24,9 @@ def main(arg):
       .init(fg=rgb(1.0, 0.0, 0.0, 0.1),
             bg=white()) as desert:
 
-    desert.draw([
+    draw = desert.draw
+
+    draw([
         box(0.3, (0.3, 0.3), 1.0),
         box(0.2, (0.7, 0.5), 0.1),
         box(0.2, (0.9, 0.9), 1.0),
@@ -34,7 +36,7 @@ def main(arg):
 
     desert.set_fg(rgb(0, 0.5, 0.5, 0.1))
 
-    desert.draw([
+    draw([
         box(0.4, (0.3, 0.3), 1.0),
         box(0.3, (0.7, 0.5), 0.1),
         box(0.4, (0.9, 0.9), 1.0),
@@ -44,11 +46,11 @@ def main(arg):
 
     desert.set_fg(rgb(0, 0.0, 0.8, 0.1))
 
-    desert.draw([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
+    draw([box(0.05, ((0.7, 0.3), (0.7, 0.8)), 1.0)])
 
     desert.show()
 
-    desert.draw([
+    draw([
         stroke(((0.1, 0.1),
                 (0.1, 0.1),
                 (0.1, 0.9),
@@ -60,9 +62,9 @@ def main(arg):
 
     desert.set_fg(rgb(0, 0.7, 0.2, 0.1))
 
-    desert.draw([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
+    draw([circle(0.05, ((0.5, 0.4), (0.8, 0.4)), 1.0)])
 
-    desert.draw([
+    draw([
         circle(0.05, ((0.9, 0.1),
                       (0.9, 0.15),
                       (0.9, 0.2),
@@ -82,11 +84,7 @@ def main(arg):
               rgb(0.5, 0.2, 0.9, 0.3),
               rgb(0.9, 0.5, 0.2, 0.3),
               ])
-        ])
-
-    desert.show(10)
-
-    desert.save(filename(arg))
+        ]).gforce().show(3).save(filename(arg))
 
 
 if __name__ == '__main__':
