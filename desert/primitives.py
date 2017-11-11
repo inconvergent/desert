@@ -3,6 +3,10 @@
 from json import loads
 
 import pycuda.driver as cuda
+from pycuda.curandom import XORWOWRandomNumberGenerator as Rgen
+
+RGEN = Rgen(offset=0)
+
 
 import pkg_resources
 
@@ -173,7 +177,7 @@ class box(basePrimitive):
 
     self._cuda_sample(npint(ng),
                       npint(imsize),
-                      cuda.In(random(shape).astype(npfloat)),
+                      RGEN.gen_uniform(shape, npfloat),
                       cuda.Out(ind),
                       self._s, self._mid,
                       npint(grains),
@@ -246,7 +250,7 @@ class circle(basePrimitive):
 
     self._cuda_sample(npint(ng),
                       npint(imsize),
-                      cuda.In(random(shape).astype(npfloat)),
+                      RGEN.gen_uniform(shape, npfloat),
                       cuda.Out(ind),
                       npfloat(self.rad),
                       self._mid,
@@ -324,7 +328,7 @@ class stroke(basePrimitive):
     self._cuda_sample(npint(ng),
                       npint(imsize),
                       self._ab,
-                      cuda.In(random(ng).astype(npfloat)),
+                      RGEN.gen_uniform(ng, npfloat),
                       cuda.Out(ind),
                       npint(grains),
                       block=(self.threads, 1, 1),
