@@ -12,6 +12,10 @@ Erosion uses Redis. By default it expects Redis to be available at
 localhost:6379. You can override it by setting the "CON" environment variable.
 See examples below.
 
+Similarly you can set the number of cuda threads by assiging an integer value
+to the "THREADS" environment variable. The default is 512.
+
+
 Usage:
   erosion worker [--chan=<c>] [--resolution=<r>] [--gsamples=<s>]
                  [--path=<p>] [--clear] [--show] [--v | --vv]

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from os import getenv
 from time import time
 
 import matplotlib.pyplot as plt
@@ -31,6 +32,7 @@ from .helpers import load_kernel
 from .helpers import unpack
 
 
+THREADS = int(getenv('THREADS', 512))
 TWOPI = pi*2
 
 
@@ -59,24 +61,22 @@ class Desert():
 
     assert self.gsamples >= 5000, 'you must set gsamples to at least 5000.'
 
-    self.threads = 512
-
     self.cuda_agg = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/agg.cu'),
         'agg',
-        subs={'_THREADS_': self.threads}
+        subs={'_THREADS_': THREADS}
         )
 
     self.cuda_agg_bin = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/agg_bin.cu'),
         'agg_bin',
-        subs={'_THREADS_': self.threads}
+        subs={'_THREADS_': THREADS}
         )
 
     self.cuda_dot = load_kernel(
          pkg_resources.resource_filename('desert', 'cuda/dot.cu'),
         'dot',
-        subs={'_THREADS_': self.threads}
+        subs={'_THREADS_': THREADS}
         )
 
     self.fig = None
@@ -150,8 +150,8 @@ class Desert():
                   npint(imsize),
                   _inds,
                   cuda.InOut(ind_count),
-                  block=(self.threads, 1, 1),
-                  grid=(int(aggn//self.threads) + 1, 1))
+                  block=(THREADS, 1, 1),
+                  grid=(int(aggn//THREADS) + 1, 1))
 
     ind_count_map = _build_ind_count(ind_count)
     _ind_count_map = cuda.mem_alloc(ind_count_map.nbytes)
@@ -166,16 +166,16 @@ class Desert():
                       cuda.In(colors),
                       _inds,
                       _sort_colors,
-                      block=(self.threads, 1, 1),
-                      grid=(int(aggn//self.threads) + 1, 1))
+                      block=(THREADS, 1, 1),
+                      grid=(int(aggn//THREADS) + 1, 1))
 
     dotn, _ = ind_count_map.shape
     self.cuda_dot(npint(dotn),
                   self._img,
                   _ind_count_map,
                   _sort_colors,
-                  block=(self.threads, 1, 1),
-                  grid=(int(dotn//self.threads) + 1, 1))
+                  block=(THREADS, 1, 1),
+                  grid=(int(dotn//THREADS) + 1, 1))
 
     if self.verbose is not None:
       print('-- drew dots: {:d}. time: {:0.4f}'.format(colors.shape[0],

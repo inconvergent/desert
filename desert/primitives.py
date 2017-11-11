@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from os import getenv
+
 from json import loads
 
 import pycuda.driver as cuda
@@ -33,8 +35,27 @@ from .color import Rgba
 
 
 
-THREADS = 256
+THREADS = int(getenv('THREADS', 512))
 TWOPI = 2.0*PI
+
+
+_cuda_sample_box = load_kernel(
+    pkg_resources.resource_filename('desert', 'cuda/box.cu'),
+   'box',
+    subs={'_THREADS_': THREADS}
+    )
+
+_cuda_sample_circle = load_kernel(
+    pkg_resources.resource_filename('desert', 'cuda/circle.cu'),
+   'circle',
+    subs={'_THREADS_': THREADS}
+    )
+
+_cuda_sample_stroke = load_kernel(
+    pkg_resources.resource_filename('desert', 'cuda/stroke.cu'),
+   'stroke',
+    subs={'_THREADS_': THREADS}
+    )
 
 
 def _load_color(o, data):
@@ -53,10 +74,10 @@ def _export_color(cc):
 
 
 class basePrimitive():
-  def __init__(self, threads):
-    self.threads = threads
+  def __init__(self):
     self.rgba = None
     self.num = None
+    self._cinit = False
 
   def has_rgb(self):
     if self.rgba is None:
@@ -106,8 +127,8 @@ class basePrimitive():
 
 
 class box(basePrimitive):
-  def __init__(self, s, mid, dens, threads=THREADS):
-    basePrimitive.__init__(self, threads)
+  def __init__(self, s, mid, dens):
+    basePrimitive.__init__(self)
 
     try:
       sx, sy = s
@@ -123,19 +144,13 @@ class box(basePrimitive):
 
     self._s = None
     self._mid = None
-    self._cuda_sample = None
 
   def __cuda_init(self):
     self._s = cuda.mem_alloc(self.s.nbytes)
     cuda.memcpy_htod(self._s, self.s)
     self._mid = cuda.mem_alloc(self.mid.nbytes)
     cuda.memcpy_htod(self._mid, self.mid)
-
-    self._cuda_sample = load_kernel(
-         pkg_resources.resource_filename('desert', 'cuda/box.cu'),
-        'box',
-        subs={'_THREADS_': self.threads}
-        )
+    self._cinit = True
 
   def __repr__(self):
     return '<box n: {:d} d: {:0.3f} {:s}>'\
@@ -165,51 +180,43 @@ class box(basePrimitive):
 
   @is_verbose
   def sample(self, imsize, verbose=False):
-    if self._cuda_sample is None:
+    if not self._cinit:
       self.__cuda_init()
 
     grains = self._get_n(imsize)
     ng = self.num*grains
-    blocks = int(ng//self.threads + 1)
+    blocks = int(ng//THREADS + 1)
     shape = (ng, 2)
 
     ind = zeros(ng, npint)
 
-    self._cuda_sample(npint(ng),
-                      npint(imsize),
-                      RGEN.gen_uniform(shape, npfloat),
-                      cuda.Out(ind),
-                      self._s, self._mid,
-                      npint(grains),
-                      block=(self.threads, 1, 1),
-                      grid=(blocks, 1))
+    _cuda_sample_box(npint(ng),
+                     npint(imsize),
+                     RGEN.gen_uniform(shape, npfloat),
+                     cuda.Out(ind),
+                     self._s, self._mid,
+                     npint(grains),
+                     block=(THREADS, 1, 1),
+                     grid=(blocks, 1))
 
     return ind
 
 
 class circle(basePrimitive):
-  def __init__(self, rad, mid, dens, threads=THREADS):
-    basePrimitive.__init__(self, threads)
+  def __init__(self, rad, mid, dens):
+    basePrimitive.__init__(self)
     self.rad = rad
     self.mid = reshape(mid, (-1, 2)).astype(npfloat)
     self.dens = dens
 
     self.num = self.mid.shape[0]
 
-    self.threads = threads
-
     self._mid = None
-    self._cuda_sample = None
+    self._cuda_init = False
 
   def __cuda_init(self):
     self._mid = cuda.mem_alloc(self.mid.nbytes)
     cuda.memcpy_htod(self._mid, self.mid)
-
-    self._cuda_sample = load_kernel(
-         pkg_resources.resource_filename('desert', 'cuda/circle.cu'),
-        'circle',
-        subs={'_THREADS_': self.threads}
-        )
 
   def __repr__(self):
     return '<circle n: {:d} d: {:0.3f} {:s}>'\
@@ -238,32 +245,32 @@ class circle(basePrimitive):
 
   @is_verbose
   def sample(self, imsize, verbose=False):
-    if self._cuda_sample is None:
+    if not self._cinit:
       self.__cuda_init()
 
     grains = self._get_n(imsize)
     ng = self.num*grains
-    blocks = int(ng//self.threads + 1)
+    blocks = int(ng//THREADS + 1)
     shape = (ng, 3)
 
     ind = zeros(ng, npint)
 
-    self._cuda_sample(npint(ng),
-                      npint(imsize),
-                      RGEN.gen_uniform(shape, npfloat),
-                      cuda.Out(ind),
-                      npfloat(self.rad),
-                      self._mid,
-                      npint(grains),
-                      block=(self.threads, 1, 1),
-                      grid=(blocks, 1))
+    _cuda_sample_circle(npint(ng),
+                        npint(imsize),
+                        RGEN.gen_uniform(shape, npfloat),
+                        cuda.Out(ind),
+                        npfloat(self.rad),
+                        self._mid,
+                        npint(grains),
+                        block=(THREADS, 1, 1),
+                        grid=(blocks, 1))
 
     return ind
 
 
 class stroke(basePrimitive):
-  def __init__(self, a, b, dens, threads=THREADS):
-    basePrimitive.__init__(self, threads)
+  def __init__(self, a, b, dens):
+    basePrimitive.__init__(self)
 
     a = reshape(a, (-1, 2)).astype(npfloat)
     b = reshape(b, (-1, 2)).astype(npfloat)
@@ -275,19 +282,11 @@ class stroke(basePrimitive):
     self.num = self.ab.shape[0]
     self.dens = dens
 
-    self.threads = threads
     self._ab = None
-    self._cuda_sample = None
 
   def __cuda_init(self):
     self._ab = cuda.mem_alloc(self.ab.nbytes)
     cuda.memcpy_htod(self._ab, self.ab)
-
-    self._cuda_sample = load_kernel(
-         pkg_resources.resource_filename('desert', 'cuda/stroke.cu'),
-        'stroke',
-        subs={'_THREADS_': self.threads}
-        )
 
   def __repr__(self):
     return '<stroke n: {:d} d: {:0.3f} {:s}>'\
@@ -316,23 +315,23 @@ class stroke(basePrimitive):
 
   @is_verbose
   def sample(self, imsize, verbose=False):
-    if self._cuda_sample is None:
+    if not self._cinit:
       self.__cuda_init()
 
     grains = self._get_n(imsize)
     ng = self.num*grains
-    blocks = int(ng//self.threads + 1)
+    blocks = int(ng//THREADS + 1)
 
     ind = zeros(ng, npint)
 
-    self._cuda_sample(npint(ng),
-                      npint(imsize),
-                      self._ab,
-                      RGEN.gen_uniform(ng, npfloat),
-                      cuda.Out(ind),
-                      npint(grains),
-                      block=(self.threads, 1, 1),
-                      grid=(blocks, 1))
+    _cuda_sample_stroke(npint(ng),
+                        npint(imsize),
+                        self._ab,
+                        RGEN.gen_uniform(ng, npfloat),
+                        cuda.Out(ind),
+                        npint(grains),
+                        block=(THREADS, 1, 1),
+                        grid=(blocks, 1))
 
     return ind
 

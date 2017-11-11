@@ -18,7 +18,7 @@ from desert.rnd import in_circle
 from desert.helpers import filename
 
 
-VERBOSE = 'v'
+VERBOSE = 'vv'
 
 
 def main(arg):
@@ -45,8 +45,7 @@ def main(arg):
       stackb.append(xyb.copy())
 
       if not i%10000:
-        desert.draw([stroke(row_stack(stacka),
-                            row_stack(stackb), 0.01)]).show(0.01)
+        desert.draw([stroke(stacka, stackb, 0.01)]).show(0.01)
         stacka = []
         stackb = []
 
