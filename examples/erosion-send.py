@@ -6,6 +6,7 @@ from erosion import Erosion
 from desert import box
 from desert import stroke
 from desert import circle
+from desert import bzspl
 
 from desert.color import rgb
 from desert.color import white
@@ -74,7 +75,34 @@ def main():
               rgb(0.5, 0.2, 0.9, 0.3),
               rgb(0.9, 0.5, 0.2, 0.3),
               ])
-        ]).save()
+        ])
+
+    send([bzspl([[0.1, 0.1],
+                 [0.9, 0.1],
+                 [0.9, 0.9]], 2)])
+
+    send([bzspl([[0.1, 0.2],
+                 [0.4, 0.25],
+                 [0.9, 0.15],
+                 [0.9, 0.3],
+                 [0.95, 0.45],
+                 [0.8, 0.9],
+                 [0.1, 0.87]], 2, closed=True)])
+
+    send([bzspl([[0.1, 0.2],
+                 [0.4, 0.25],
+                 [0.9, 0.15],
+                 [0.9, 0.3],
+                 [0.95, 0.45],
+                 [0.8, 0.9]], 2, closed=True)])
+
+    send([bzspl([[0.1, 0.2],
+                 [0.4, 0.25],
+                 [0.9, 0.15],
+                 [0.9, 0.3],
+                 [0.95, 0.45],
+                 [0.8, 0.9],
+                 [0.1, 0.87]], 2)]).save()
 
 
 if __name__ == '__main__':

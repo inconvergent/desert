@@ -7,24 +7,17 @@ from json import loads
 import pycuda.driver as cuda
 from pycuda.curandom import XORWOWRandomNumberGenerator as Rgen
 
-RGEN = Rgen(offset=0)
-
-
 import pkg_resources
 
-from numpy import arange
 from numpy import column_stack
 from numpy import float32 as npfloat
-from numpy import hstack
 from numpy import int32 as npint
 from numpy import pi as PI
 from numpy import prod
-from numpy import repeat
 from numpy import reshape
-from numpy import row_stack
+from numpy import roll
 from numpy import tile
 from numpy import zeros
-from numpy.random import random
 
 from .helpers import is_verbose
 from .helpers import json_array
@@ -32,6 +25,8 @@ from .helpers import load_kernel
 from .helpers import pfloat
 
 from .color import Rgba
+
+RGEN = Rgen(offset=0)
 
 
 
@@ -41,19 +36,25 @@ TWOPI = 2.0*PI
 
 _cuda_sample_box = load_kernel(
     pkg_resources.resource_filename('desert', 'cuda/box.cu'),
-   'box',
+    'box',
     subs={'_THREADS_': THREADS}
     )
 
 _cuda_sample_circle = load_kernel(
     pkg_resources.resource_filename('desert', 'cuda/circle.cu'),
-   'circle',
+    'circle',
     subs={'_THREADS_': THREADS}
     )
 
 _cuda_sample_stroke = load_kernel(
     pkg_resources.resource_filename('desert', 'cuda/stroke.cu'),
-   'stroke',
+    'stroke',
+    subs={'_THREADS_': THREADS}
+    )
+
+_cuda_sample_bzspl = load_kernel(
+    pkg_resources.resource_filename('desert', 'cuda/bzspl.cu'),
+    'bzspl',
     subs={'_THREADS_': THREADS}
     )
 
@@ -77,7 +78,13 @@ class basePrimitive():
   def __init__(self):
     self.rgba = None
     self.num = None
+    self.dens = None
     self._cinit = False
+
+  def __repr__(self):
+    return '<{:s} n: {:d} d: {:0.3f}{:s}>'\
+        .format(self.__class__.__name__, self.num,
+                self.dens, ' *' if self.rgba else '')
 
   def has_rgb(self):
     if self.rgba is None:
@@ -94,21 +101,20 @@ class basePrimitive():
     if isinstance(cc, Rgba):
       res = reshape(tile(cc.rgba, ng), (ng, 4))
     else:
-      res = reshape([tile(c.rgba, grains) for c in cc],
-          (ng, 4))
+      res = reshape([tile(c.rgba, grains) for c in cc], (ng, 4))
 
     return res.astype(npfloat)
 
   def rgb(self, cc):
     if self.num == 1:
-      assert isinstance(cc, Rgba)
+      assert isinstance(cc, Rgba), 'not an Rgba instance'
 
     elif self.num > 1:
 
       if not isinstance(cc, Rgba):
-        assert len(cc) == self.num
+        assert len(cc) == self.num, 'inconsistent number of colors'
         for c in cc:
-          assert isinstance(c, Rgba)
+          assert isinstance(c, Rgba), 'not an Rgba instance'
 
     self.rgba = cc
     return self
@@ -116,13 +122,13 @@ class basePrimitive():
   def est(self, imsize):
     return self._get_n(imsize) * self.num
 
-  def _get_n(self, *arg, **args):
+  def _get_n(self, imsize):
     return NotImplemented
 
-  def sample(self, *arg, **args):
+  def sample(self, imsize, verbose=False):
     return NotImplemented
 
-  def json(self, *arg, **args):
+  def json(self):
     return NotImplemented
 
 
@@ -151,10 +157,6 @@ class box(basePrimitive):
     self._mid = cuda.mem_alloc(self.mid.nbytes)
     cuda.memcpy_htod(self._mid, self.mid)
     self._cinit = True
-
-  def __repr__(self):
-    return '<box n: {:d} d: {:0.3f} {:s}>'\
-        .format(self.num, self.dens, '*' if self.rgba else '')
 
   @staticmethod
   def from_json(j):
@@ -185,7 +187,6 @@ class box(basePrimitive):
 
     grains = self._get_n(imsize)
     ng = self.num*grains
-    blocks = int(ng//THREADS + 1)
     shape = (ng, 2)
 
     ind = zeros(ng, npint)
@@ -197,7 +198,7 @@ class box(basePrimitive):
                      self._s, self._mid,
                      npint(grains),
                      block=(THREADS, 1, 1),
-                     grid=(blocks, 1))
+                     grid=(int(ng//THREADS + 1), 1))
 
     return ind
 
@@ -217,10 +218,6 @@ class circle(basePrimitive):
   def __cuda_init(self):
     self._mid = cuda.mem_alloc(self.mid.nbytes)
     cuda.memcpy_htod(self._mid, self.mid)
-
-  def __repr__(self):
-    return '<circle n: {:d} d: {:0.3f} {:s}>'\
-        .format(self.num, self.dens, '*' if self.rgba else '')
 
   def _get_n(self, imsize):
     return int(self.dens*PI*(self.rad*imsize)**2)
@@ -250,7 +247,6 @@ class circle(basePrimitive):
 
     grains = self._get_n(imsize)
     ng = self.num*grains
-    blocks = int(ng//THREADS + 1)
     shape = (ng, 3)
 
     ind = zeros(ng, npint)
@@ -263,7 +259,7 @@ class circle(basePrimitive):
                         self._mid,
                         npint(grains),
                         block=(THREADS, 1, 1),
-                        grid=(blocks, 1))
+                        grid=(int(ng//THREADS + 1), 1))
 
     return ind
 
@@ -275,7 +271,7 @@ class stroke(basePrimitive):
     a = reshape(a, (-1, 2)).astype(npfloat)
     b = reshape(b, (-1, 2)).astype(npfloat)
 
-    assert a.shape[0] == b.shape[0]
+    assert a.shape[0] == b.shape[0], 'inconsistent number of points in a, b'
 
     self.ab = column_stack((a, b))
 
@@ -287,10 +283,6 @@ class stroke(basePrimitive):
   def __cuda_init(self):
     self._ab = cuda.mem_alloc(self.ab.nbytes)
     cuda.memcpy_htod(self._ab, self.ab)
-
-  def __repr__(self):
-    return '<stroke n: {:d} d: {:0.3f} {:s}>'\
-        .format(self.num, self.dens, '*' if self.rgba else '')
 
   def _get_n(self, imsize):
     return int(self.dens*imsize)
@@ -320,7 +312,6 @@ class stroke(basePrimitive):
 
     grains = self._get_n(imsize)
     ng = self.num*grains
-    blocks = int(ng//THREADS + 1)
 
     ind = zeros(ng, npint)
 
@@ -331,7 +322,98 @@ class stroke(basePrimitive):
                         cuda.Out(ind),
                         npint(grains),
                         block=(THREADS, 1, 1),
-                        grid=(blocks, 1))
+                        grid=(int(ng//THREADS + 1), 1))
+
+    return ind
+
+
+class bzspl(basePrimitive):
+  def __init__(self, pts, dens, closed=False):
+    basePrimitive.__init__(self)
+
+    pts = reshape(pts, (-1, 2)).astype(npfloat)
+
+    assert pts.shape[0] > 2, 'must have at least 3 points'
+
+    self.num = 1
+    self.pts = pts
+    self.closed = closed
+    self.dens = dens
+
+    n = pts.shape[0]
+
+    if closed:
+      self.num_segments = n
+      self.nv = 2*n + 1
+    else:
+      self.num_segments = n-2
+      self.nv = 2*n-3
+
+    if closed:
+      self.vpts = self._get_vpts_closed(pts.astype(npfloat), self.nv)
+    else:
+      self.vpts = self._get_vpts_open(pts.astype(npfloat), self.nv)
+
+  def __cuda_init(self):
+    self._vpts = cuda.mem_alloc(self.vpts.nbytes)
+    cuda.memcpy_htod(self._vpts, self.vpts)
+
+  def _get_vpts_open(self, pts, nv):
+    res = zeros((nv, 2), npfloat)
+    res[:2:, :] = pts[:2, :]
+    res[-2:, :] = pts[-2:, :]
+    res[3:-2:2, :] = pts[2:-2, :]
+    res[2:-2:2, :] = (pts[1:-2, :] + pts[2:-1, :])*0.5
+    return res
+
+  def _get_vpts_closed(self, pts, nv):
+    res = zeros((nv, 2), npfloat)
+    rolled = roll(pts, -1, axis=0)
+    res[1::2, :] = rolled
+    res[:-2:2, :] = (rolled + pts)*0.5
+    res[-1, :] = res[0, :]
+    return res
+
+  def _get_n(self, imsize):
+    return int(self.dens*imsize)
+
+  def json(self):
+    return {
+        '_type': 'stroke',
+        '_data': {
+            'pts': json_array(self.pts),
+            'closed': self.closed,
+            'dens': pfloat(self.dens),
+            'rgba': _export_color(self.rgba) if self.rgba is not None else None
+            }
+        }
+
+  @staticmethod
+  def from_json(j):
+    if isinstance(j, str):
+      j = loads(j)
+    data = j['_data']
+    return _load_color(
+        bzspl(data['pts'],
+              data['dens'],
+              data['closed']), data)
+
+  @is_verbose
+  def sample(self, imsize, verbose=False):
+    if not self._cinit:
+      self.__cuda_init()
+
+    ng = self.num*self._get_n(imsize)
+    ind = zeros(ng, npint)
+
+    _cuda_sample_bzspl(npint(ng),
+                       npint(imsize),
+                       RGEN.gen_uniform(ng, npfloat),
+                       npint(self.num_segments),
+                       self._vpts,
+                       cuda.InOut(ind),
+                       block=(THREADS, 1, 1),
+                       grid=(int(ng//THREADS + 1), 1))
 
     return ind
 

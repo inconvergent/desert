@@ -18,7 +18,7 @@ packages = find_packages()
 
 setup(
     name='desert',
-    version='0.0.6',
+    version='0.0.7',
     description='desert',
     url='https://github.com/inconvergent/desert',
     license='MIT',
@@ -28,10 +28,12 @@ setup(
     packages=packages,
     package_data={
         'desert': [
+            'cuda/agg.cu',
+            'cuda/agg_bin.cu',
             'cuda/box.cu',
+            'cuda/bzspl.cu',
             'cuda/circle.cu',
             'cuda/dot.cu',
-            'cuda/agg.cu',
             'cuda/stroke.cu',
             ],
     },

@@ -12,7 +12,6 @@ from numpy import sin
 from numpy import zeros
 from numpy.random import random
 
-from erosion import Erosion
 from desert import Desert
 from desert import stroke
 

@@ -39,10 +39,6 @@ TWOPI = pi*2
 def _build_ind_count(counts):
   ind_count_reduced = column_stack((arange(counts.shape[0]).astype(npint),
                                     counts))
-
-  # ns = counts.nonzero()[0]
-  # ind_count_reduced = ind_count_reduced[ns, :]
-
   cm = concatenate(([0], cumsum(ind_count_reduced[:, 1])[:-1])).astype(npint)
   return column_stack((ind_count_reduced, cm, cm)).astype(npint)
 
