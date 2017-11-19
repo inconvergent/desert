@@ -15,6 +15,7 @@ from numpy import int32 as npint
 from numpy import pi as PI
 from numpy import prod
 from numpy import reshape
+from numpy import dstack
 from numpy import roll
 from numpy import tile
 from numpy import zeros
@@ -173,6 +174,7 @@ class box(basePrimitive):
     return {
         '_type': 'box',
         '_data': {
+            'num': self.num,
             'mid': json_array(self.mid),
             's': json_array(self.s).pop(),
             'dens': pfloat(self.dens),
@@ -189,18 +191,17 @@ class box(basePrimitive):
     ng = self.num*grains
     shape = (ng, 2)
 
-    ind = zeros(ng, npint)
+    xy = zeros((ng, 2), npfloat)
 
     _cuda_sample_box(npint(ng),
-                     npint(imsize),
                      RGEN.gen_uniform(shape, npfloat),
-                     cuda.Out(ind),
+                     cuda.Out(xy),
                      self._s, self._mid,
                      npint(grains),
                      block=(THREADS, 1, 1),
                      grid=(int(ng//THREADS + 1), 1))
 
-    return ind
+    return xy
 
 
 class circle(basePrimitive):
@@ -226,6 +227,7 @@ class circle(basePrimitive):
     return {
         '_type': 'circle',
         '_data': {
+            'num': self.num,
             'rad': pfloat(self.rad),
             'mid': json_array(self.mid),
             'dens': pfloat(self.dens),
@@ -249,19 +251,18 @@ class circle(basePrimitive):
     ng = self.num*grains
     shape = (ng, 3)
 
-    ind = zeros(ng, npint)
+    xy = zeros((ng, 2), npfloat)
 
     _cuda_sample_circle(npint(ng),
-                        npint(imsize),
                         RGEN.gen_uniform(shape, npfloat),
-                        cuda.Out(ind),
+                        cuda.Out(xy),
                         npfloat(self.rad),
                         self._mid,
                         npint(grains),
                         block=(THREADS, 1, 1),
                         grid=(int(ng//THREADS + 1), 1))
 
-    return ind
+    return xy
 
 
 class stroke(basePrimitive):
@@ -291,6 +292,7 @@ class stroke(basePrimitive):
     return {
         '_type': 'stroke',
         '_data': {
+            'num': self.num,
             'a': json_array(self.ab[:, :2]),
             'b': json_array(self.ab[:, 2:]),
             'dens': pfloat(self.dens),
@@ -313,75 +315,78 @@ class stroke(basePrimitive):
     grains = self._get_n(imsize)
     ng = self.num*grains
 
-    ind = zeros(ng, npint)
+    xy = zeros((ng, 2), npfloat)
 
     _cuda_sample_stroke(npint(ng),
-                        npint(imsize),
                         self._ab,
                         RGEN.gen_uniform(ng, npfloat),
-                        cuda.Out(ind),
+                        cuda.Out(xy),
                         npint(grains),
                         block=(THREADS, 1, 1),
                         grid=(int(ng//THREADS + 1), 1))
 
-    return ind
+    return xy
 
 
 class bzspl(basePrimitive):
   def __init__(self, pts, dens, closed=False):
     basePrimitive.__init__(self)
 
-    pts = reshape(pts, (-1, 2)).astype(npfloat)
+    self.num = len(pts)
+
+    # pts = reshape(pts, (-1, 2, self.num)).astype(npfloat)
+    pts = dstack(pts).astype(npfloat)
 
     assert pts.shape[0] > 2, 'must have at least 3 points'
 
-    self.num = 1
     self.pts = pts
+
     self.closed = closed
     self.dens = dens
 
-    n = pts.shape[0]
+    ctrlpts = pts.shape[0]
 
     if closed:
-      self.num_segments = n
-      self.nv = 2*n + 1
+      self.num_segments = ctrlpts
+      self.nv = 2*ctrlpts + 1
     else:
-      self.num_segments = n-2
-      self.nv = 2*n-3
+      self.num_segments = ctrlpts-2
+      self.nv = 2*ctrlpts-3
 
     if closed:
-      self.vpts = self._get_vpts_closed(pts.astype(npfloat), self.nv)
+      self.vpts = self._get_vpts_closed(pts, self.nv)
     else:
-      self.vpts = self._get_vpts_open(pts.astype(npfloat), self.nv)
+      self.vpts = self._get_vpts_open(pts, self.nv)
 
   def __cuda_init(self):
     self._vpts = cuda.mem_alloc(self.vpts.nbytes)
     cuda.memcpy_htod(self._vpts, self.vpts)
 
   def _get_vpts_open(self, pts, nv):
-    res = zeros((nv, 2), npfloat)
-    res[:2:, :] = pts[:2, :]
-    res[-2:, :] = pts[-2:, :]
-    res[3:-2:2, :] = pts[2:-2, :]
-    res[2:-2:2, :] = (pts[1:-2, :] + pts[2:-1, :])*0.5
-    return res
+    res = zeros((nv, 2, self.num), npfloat)
+    res[:2:, :, :] = pts[:2, :, :]
+    res[-2:, :, :] = pts[-2:, :, :]
+    res[3:-2:2, :, :] = pts[2:-2, :, :]
+    res[2:-2:2, :, :] = (pts[1:-2, :, :] + pts[2:-1, :, :])*0.5
+    return reshape(res.swapaxes(1, 2), (-1, 2), 'F').copy()
 
   def _get_vpts_closed(self, pts, nv):
-    res = zeros((nv, 2), npfloat)
+    res = zeros((nv, 2, self.num), npfloat)
     rolled = roll(pts, -1, axis=0)
-    res[1::2, :] = rolled
-    res[:-2:2, :] = (rolled + pts)*0.5
-    res[-1, :] = res[0, :]
-    return res
+    res[1::2, :, :] = rolled
+    res[:-2:2, :, :] = (rolled + pts)*0.5
+    res[-1, :, :] = res[0, :, :]
+    return reshape(res.swapaxes(1, 2), (-1, 2), 'F').copy()
 
   def _get_n(self, imsize):
     return int(self.dens*imsize)
 
   def json(self):
     return {
-        '_type': 'stroke',
+        '_type': 'bzspl',
         '_data': {
-            'pts': json_array(self.pts),
+            'num': self.num,
+            'pts': [json_array(self.pts[:, :, i]) for i in range(self.num)],
             'closed': self.closed,
             'dens': pfloat(self.dens),
             'rgba': _export_color(self.rgba) if self.rgba is not None else None
@@ -403,17 +408,19 @@ class bzspl(basePrimitive):
     if not self._cinit:
       self.__cuda_init()
 
-    ng = self.num*self._get_n(imsize)
-    ind = zeros(ng, npint)
+    grains = self._get_n(imsize)
+    ng = self.num*grains
+    xy = zeros((ng, 2), npfloat)
 
     _cuda_sample_bzspl(npint(ng),
-                       npint(imsize),
-                       RGEN.gen_uniform(ng, npfloat),
+                       npint(grains),
                        npint(self.num_segments),
+                       npint(self.nv),
+                       RGEN.gen_uniform(ng, npfloat),
                        self._vpts,
-                       cuda.InOut(ind),
+                       cuda.InOut(xy),
                        block=(THREADS, 1, 1),
                        grid=(int(ng//THREADS + 1), 1))
 
-    return ind
+    return xy
 

@@ -14,6 +14,7 @@ from numpy import argsort
 from numpy import column_stack
 from numpy import concatenate
 from numpy import cumsum
+from numpy import vstack
 from numpy import float32 as npfloat
 from numpy import int32 as npint
 from numpy import pi
@@ -129,7 +130,7 @@ class Desert():
 
   def _draw(self, pts, colors):
     if not pts:
-      return
+      return False
     imsize = self.imsize
 
     dt0 = time()
@@ -137,33 +138,42 @@ class Desert():
     ind_count = zeros(self.imsize2, npint)
     colors = row_stack(colors).astype(npfloat)
 
-    inds = concatenate(pts).astype(npint)
-    _inds = cuda.mem_alloc(inds.nbytes)
-    cuda.memcpy_htod(_inds, inds)
+    xy = vstack(pts).astype(npfloat)
+    inds = zeros(xy.shape[0], npint)
 
-    aggn = inds.shape[0]
-    self.cuda_agg(npint(aggn),
+    self.cuda_agg(npint(inds.shape[0]),
                   npint(imsize),
-                  _inds,
+                  cuda.In(xy),
+                  cuda.InOut(inds),
                   cuda.InOut(ind_count),
                   block=(THREADS, 1, 1),
-                  grid=(int(aggn//THREADS) + 1, 1))
+                  grid=(int(inds.shape[0]//THREADS) + 1, 1))
+
+    mask = inds > -1
+
+    if not mask.any():
+      print('-- no dots to draw. time: {:0.4f}'.format(time()-dt0))
+      return False
+
+    # xy = xy[mask, :]
+    inds = inds[mask]
+    colors = colors[mask]
 
     ind_count_map = _build_ind_count(ind_count)
     _ind_count_map = cuda.mem_alloc(ind_count_map.nbytes)
     cuda.memcpy_htod(_ind_count_map, ind_count_map)
 
-    sort_colors = zeros((aggn, 4), npfloat)
+    sort_colors = zeros((inds.shape[0], 4), npfloat)
     _sort_colors = cuda.mem_alloc(sort_colors.nbytes)
     cuda.memcpy_htod(_sort_colors, sort_colors)
 
-    self.cuda_agg_bin(npint(aggn),
+    self.cuda_agg_bin(npint(inds.shape[0]),
                       _ind_count_map,
                       cuda.In(colors),
-                      _inds,
+                      cuda.In(inds),
                       _sort_colors,
                       block=(THREADS, 1, 1),
-                      grid=(int(aggn//THREADS) + 1, 1))
+                      grid=(int(inds.shape[0]//THREADS) + 1, 1))
 
     dotn, _ = ind_count_map.shape
     self.cuda_dot(npint(dotn),
@@ -177,6 +187,7 @@ class Desert():
       print('-- drew dots: {:d}. time: {:0.4f}'.format(colors.shape[0],
                                                        time()-dt0))
     self._updated = True
+    return True
 
   def draw(self, primitives):
     imsize = self.imsize
@@ -194,9 +205,6 @@ class Desert():
       inds = p.sample(imsize, verbose=sample_verbose)
       colors = p.color_sample(imsize, self.fg)
       est += p.est(imsize)
-      mask = inds > 0
-      inds = inds[mask]
-      colors = colors[mask, :]
 
       if inds.shape[0] > 0:
         pts.append(inds)
@@ -236,15 +244,15 @@ class Desert():
 
     for p in primitives:
       self.count += p.num
-      inds = p.sample(imsize, verbose=sample_verbose)
+      xy = p.sample(imsize, verbose=sample_verbose)
       colors = p.color_sample(imsize, self.fg)
       self.est += p.est(imsize)
-      mask = inds > 0
-      inds = inds[mask]
-      colors = colors[mask, :]
+      # mask = inds > 0
+      # inds = inds[mask]
+      # colors = colors[mask, :]
 
-      if inds.shape[0] > 0:
-        self.pts.append(inds)
+      if xy.shape[0] > 0:
+        self.pts.append(xy)
         self.color_list.append(colors)
 
     self.tdraw += time()-t0

@@ -73,15 +73,9 @@ to issues, or take requests.
 
 Desert:
 
-- [ ] Spline
-- [ ] aggregate primitives
 - [ ] Circle: varying rad
 - [ ] Box: varying size
-
-
-Erosion:
-
-- [ ] Move pfloat to erosion (from .json())
+- [ ] Noise
 
 
 ## Notes

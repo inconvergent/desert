@@ -46,7 +46,7 @@ def main(arg):
     noise = 0.00005
     spl = []
 
-    for num in randint(5, 20, 15):
+    for _ in range(20):
       a = sorted(random(num)*TWOPI)
       spl.append(0.5 + column_stack((cos(a), sin(a)))*rad)
 
@@ -55,10 +55,10 @@ def main(arg):
       for xy in spl:
         n = xy.shape[0]
         xy += in_circle(n, 0, 0, 1)*reshape(arange(n), (n, 1))*noise
-        res.append(bzspl(xy, density))
+        res.append(xy.copy())
 
       if not i%400:
-        c.draw(res).show(gamma=1.5)
+        c.draw([bzspl(res, density)]).show(gamma=1.5)
         res = []
       if not i%(400*20):
         c.save(filename(arg), gamma=1.5)

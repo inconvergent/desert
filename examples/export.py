@@ -54,15 +54,26 @@ def main():
   pprint(Rgba.from_json(r).json())
   pprint()
 
-  b = bzspl([[0.1, 0.2],
-             [0.4, 0.25],
-             [0.9, 0.15],
-             [0.9, 0.3],
-             [0.95, 0.45],
-             [0.8, 0.9]], 2, closed=True).json()
+  b = bzspl([[(0.1, 0.2),
+              (0.4, 0.25),
+              (0.9, 0.15),
+              (0.9, 0.3),
+              (0.95, 0.45),
+              (0.8, 0.9)]], 2, closed=True).json()
 
   pprint(b)
   pprint(bzspl.from_json(b).json())
+  pprint()
+
+  b2 = bzspl([[(0.1, 0.2),
+               (0.3, 0.4),
+               (0.5, 0.6)],
+              [(0.15, 0.25),
+               (0.35, 0.45),
+               (0.55, 0.65)]], 2).json()
+
+  pprint(b2)
+  pprint(bzspl.from_json(b2).json())
   pprint()
 
 
