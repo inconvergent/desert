@@ -3,6 +3,7 @@
 from os import getenv
 
 from json import loads
+from functools import wraps
 
 import pycuda.driver as cuda
 from pycuda.curandom import XORWOWRandomNumberGenerator as Rgen
@@ -10,12 +11,12 @@ from pycuda.curandom import XORWOWRandomNumberGenerator as Rgen
 import pkg_resources
 
 from numpy import column_stack
+from numpy import dstack
 from numpy import float32 as npfloat
 from numpy import int32 as npint
 from numpy import pi as PI
 from numpy import prod
 from numpy import reshape
-from numpy import dstack
 from numpy import roll
 from numpy import tile
 from numpy import zeros
@@ -59,6 +60,28 @@ _cuda_sample_bzspl = load_kernel(
     subs={'_THREADS_': THREADS}
     )
 
+def add_noise(f):
+  @wraps(f)
+  def inside(*args, **kwargs):
+    res = f(*args, **kwargs)
+    self = args[0]
+    if self.noise is not None:
+      rad = npfloat(self.noise)
+      ng = res.shape[0]
+      xy = zeros((ng, 2), npfloat)
+      mid = zeros((1, 2), npfloat)
+      _cuda_sample_circle(npint(ng),
+                          RGEN.gen_uniform((ng, 3), npfloat),
+                          cuda.Out(xy),
+                          rad,
+                          cuda.In(mid),
+                          npint(ng),
+                          block=(THREADS, 1, 1),
+                          grid=(int(ng//THREADS + 1), 1))
+      return res + xy
+    return res
+  return inside
+
 
 def _load_color(o, data):
   cc = data.get('rgba')
@@ -80,6 +103,7 @@ class basePrimitive():
     self.rgba = None
     self.num = None
     self.dens = None
+    self.noise = None
     self._cinit = False
 
   def __repr__(self):
@@ -134,7 +158,7 @@ class basePrimitive():
 
 
 class box(basePrimitive):
-  def __init__(self, s, mid, dens):
+  def __init__(self, s, mid, dens, noise=None):
     basePrimitive.__init__(self)
 
     try:
@@ -146,6 +170,7 @@ class box(basePrimitive):
     self.s = reshape([sx, sy], (1, 2)).astype(npfloat)
     self.mid = reshape(mid, (-1, 2)).astype(npfloat)
     self.dens = dens
+    self.noise = noise
 
     self.num = self.mid.shape[0]
 
@@ -164,7 +189,8 @@ class box(basePrimitive):
     if isinstance(j, str):
       j = loads(j)
     data = j['_data']
-    return _load_color(box(data['s'], data['mid'], data['dens']), data)
+    return _load_color(box(data['s'], data['mid'], dens=data['dens'],
+                           noise=data['noise']), data)
 
   def _get_n(self, imsize):
     s = self.s
@@ -178,10 +204,12 @@ class box(basePrimitive):
             'mid': json_array(self.mid),
             's': json_array(self.s).pop(),
             'dens': pfloat(self.dens),
+            'noise': self.noise,
             'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
 
+  @add_noise
   @is_verbose
   def sample(self, imsize, verbose=False):
     if not self._cinit:
@@ -205,11 +233,12 @@ class box(basePrimitive):
 
 
 class circle(basePrimitive):
-  def __init__(self, rad, mid, dens):
+  def __init__(self, rad, mid, dens, noise=None):
     basePrimitive.__init__(self)
     self.rad = rad
     self.mid = reshape(mid, (-1, 2)).astype(npfloat)
     self.dens = dens
+    self.noise = noise
 
     self.num = self.mid.shape[0]
 
@@ -231,6 +260,7 @@ class circle(basePrimitive):
             'rad': pfloat(self.rad),
             'mid': json_array(self.mid),
             'dens': pfloat(self.dens),
+            'noise': self.noise,
             'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
@@ -240,8 +270,10 @@ class circle(basePrimitive):
     if isinstance(j, str):
       j = loads(j)
     data = j['_data']
-    return _load_color(circle(data['rad'], data['mid'], data['dens']), data)
+    return _load_color(circle(data['rad'], data['mid'], dens=data['dens'],
+                              noise=data['noise']), data)
 
+  @add_noise
   @is_verbose
   def sample(self, imsize, verbose=False):
     if not self._cinit:
@@ -266,7 +298,7 @@ class circle(basePrimitive):
 
 
 class stroke(basePrimitive):
-  def __init__(self, a, b, dens):
+  def __init__(self, a, b, dens, noise=None):
     basePrimitive.__init__(self)
 
     a = reshape(a, (-1, 2)).astype(npfloat)
@@ -278,6 +310,7 @@ class stroke(basePrimitive):
 
     self.num = self.ab.shape[0]
     self.dens = dens
+    self.noise = noise
 
     self._ab = None
 
@@ -296,6 +329,7 @@ class stroke(basePrimitive):
             'a': json_array(self.ab[:, :2]),
             'b': json_array(self.ab[:, 2:]),
             'dens': pfloat(self.dens),
+            'noise': self.noise,
             'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
@@ -305,8 +339,10 @@ class stroke(basePrimitive):
     if isinstance(j, str):
       j = loads(j)
     data = j['_data']
-    return _load_color(stroke(data['a'], data['b'], data['dens']), data)
+    return _load_color(stroke(data['a'], data['b'], data['dens'],
+                              noise=data['noise']), data)
 
+  @add_noise
   @is_verbose
   def sample(self, imsize, verbose=False):
     if not self._cinit:
@@ -329,7 +365,7 @@ class stroke(basePrimitive):
 
 
 class bzspl(basePrimitive):
-  def __init__(self, pts, dens, closed=False):
+  def __init__(self, pts, dens, closed=False, noise=None):
     basePrimitive.__init__(self)
 
     self.num = len(pts)
@@ -343,6 +379,7 @@ class bzspl(basePrimitive):
 
     self.closed = closed
     self.dens = dens
+    self.noise = noise
 
     ctrlpts = pts.shape[0]
 
@@ -389,6 +426,7 @@ class bzspl(basePrimitive):
             'pts': [json_array(self.pts[:, :, i]) for i in range(self.num)],
             'closed': self.closed,
             'dens': pfloat(self.dens),
+            'noise': self.noise,
             'rgba': _export_color(self.rgba) if self.rgba is not None else None
             }
         }
@@ -400,9 +438,11 @@ class bzspl(basePrimitive):
     data = j['_data']
     return _load_color(
         bzspl(data['pts'],
-              data['dens'],
-              data['closed']), data)
+              dens=data['dens'],
+              closed=data['closed'],
+              noise=data['noise']), data)
 
+  @add_noise
   @is_verbose
   def sample(self, imsize, verbose=False):
     if not self._cinit:

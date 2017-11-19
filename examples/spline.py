@@ -4,29 +4,21 @@
 
 from sys import argv
 
-from desert.helpers import filename
 from numpy import arange
-from numpy import array
+from numpy import column_stack
 from numpy import cos
 from numpy import pi
 from numpy import reshape
 from numpy import sin
-from numpy import zeros
-from numpy import linspace
-from numpy import column_stack
 from numpy.random import random
-from numpy.random import randint
 
 from desert import Desert
 from desert import bzspl
-
+from desert.color import black
+from desert.color import white
+from desert.helpers import filename
 from desert.rnd import in_circle
 
-from desert.color import rgb
-from desert.color import white
-from desert.color import black
-
-from time import time
 
 TWOPI = 2.0*pi
 
@@ -58,7 +50,7 @@ def main(arg):
         res.append(xy.copy())
 
       if not i%400:
-        c.draw([bzspl(res, density)]).show(gamma=1.5)
+        c.draw([bzspl(res, density, noise=0.001)]).show(gamma=1.5)
         res = []
       if not i%(400*20):
         c.save(filename(arg), gamma=1.5)

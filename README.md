@@ -75,7 +75,6 @@ Desert:
 
 - [ ] Circle: varying rad
 - [ ] Box: varying size
-- [ ] Noise
 
 
 ## Notes

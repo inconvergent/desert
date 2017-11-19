@@ -8,8 +8,6 @@ from json import dumps
 from pycuda.compiler import SourceModule
 
 from numpy import dstack
-from numpy import float32 as npfloat
-from numpy import int32 as npint
 from numpy import power
 from numpy import reshape
 from numpy import transpose
