@@ -3,7 +3,7 @@
 Desert consists of two parts.
 
 The main library is simply called `Desert`. It is a CUDA accelerated library
-for sandpainting: http://inconvergent.net/grains-of-sand/
+for sandpainting: https://inconvergent.net/grains-of-sand/
 
 The second part is called `Erosion`. A Redis-based client and worker that can
 accept and draw `Desert` primitives and commands encoded as JSON objects. That
@@ -13,7 +13,7 @@ a different language, while still having a fast drawing engine that benefits
 from CUDA.
 
 I've written a little more about the library here:
-http://inconvergent.net/lost-in-the-desert/
+https://inconvergent.net/lost-in-the-desert/
 
 ![img](img/img.png?raw=true "img")
 
